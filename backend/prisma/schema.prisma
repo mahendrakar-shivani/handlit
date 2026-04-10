@@ -1,0 +1,180 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── ENUMS ───────────────────────────────────────────────────────────────────
+
+enum Role {
+  CUSTOMER
+  ADMIN
+}
+
+enum BookingStatus {
+  PENDING
+  CONFIRMED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+enum PaymentStatus {
+  PENDING
+  SUCCESS
+  FAILED
+  REFUNDED
+}
+
+enum NotificationType {
+  BOOKING_CREATED
+  BOOKING_CONFIRMED
+  BOOKING_CANCELLED
+  BOOKING_COMPLETED
+  PAYMENT_SUCCESS
+  PAYMENT_FAILED
+  GENERAL
+}
+
+// ─── USER ─────────────────────────────────────────────────────────────────────
+
+model User {
+  id            String         @id @default(uuid())
+  name          String
+  email         String         @unique
+  password      String
+  phone         String?
+  role          Role           @default(CUSTOMER)
+  resetToken    String?
+  resetExpiry   DateTime?
+  deletedAt     DateTime?
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  bookings      Booking[]
+  reviews       Review[]
+  notifications Notification[]
+}
+
+// ─── PROVIDER ─────────────────────────────────────────────────────────────────
+
+model Provider {
+  id            String            @id @default(uuid())
+  name          String
+  email         String            @unique
+  password      String
+  phone         String?
+  bio           String?
+  rating        Float             @default(0)
+  isVerified    Boolean           @default(false)
+  deletedAt     DateTime?
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+  services      ProviderService[]
+  bookings      Booking[]
+  reviews       Review[]
+  notifications Notification[]
+}
+
+// ─── CATEGORY ─────────────────────────────────────────────────────────────────
+
+model Category {
+  id       String    @id @default(uuid())
+  name     String    @unique
+  services Service[]
+}
+
+// ─── SERVICE ──────────────────────────────────────────────────────────────────
+
+model Service {
+  id          String            @id @default(uuid())
+  name        String
+  description String?
+  category    Category          @relation(fields: [categoryId], references: [id])
+  categoryId  String
+  basePrice   Float
+  deletedAt   DateTime?
+  createdAt   DateTime          @default(now())
+  providers   ProviderService[]
+  bookings    Booking[]
+}
+
+// ─── PROVIDER-SERVICE (join table) ────────────────────────────────────────────
+
+model ProviderService {
+  id         String   @id @default(uuid())
+  provider   Provider @relation(fields: [providerId], references: [id])
+  providerId String
+  service    Service  @relation(fields: [serviceId], references: [id])
+  serviceId  String
+  price      Float
+  @@unique([providerId, serviceId])
+}
+
+// ─── BOOKING ──────────────────────────────────────────────────────────────────
+
+model Booking {
+  id          String        @id @default(uuid())
+  user        User          @relation(fields: [userId], references: [id])
+  userId      String
+  provider    Provider      @relation(fields: [providerId], references: [id])
+  providerId  String
+  service     Service       @relation(fields: [serviceId], references: [id])
+  serviceId   String
+  status      BookingStatus @default(PENDING)
+  scheduledAt DateTime
+  address     String
+  totalAmount Float
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  review      Review?
+  payment     Payment?
+}
+
+// ─── REVIEW ───────────────────────────────────────────────────────────────────
+
+model Review {
+  id         String   @id @default(uuid())
+  booking    Booking  @relation(fields: [bookingId], references: [id])
+  bookingId  String   @unique
+  user       User     @relation(fields: [userId], references: [id])
+  userId     String
+  provider   Provider @relation(fields: [providerId], references: [id])
+  providerId String
+  rating     Int
+  comment    String?
+  createdAt  DateTime @default(now())
+}
+
+// ─── NOTIFICATION ─────────────────────────────────────────────────────────────
+
+model Notification {
+  id         String           @id @default(uuid())
+  userId     String?
+  providerId String?
+  user       User?            @relation(fields: [userId], references: [id])
+  provider   Provider?        @relation(fields: [providerId], references: [id])
+  type       NotificationType
+  title      String
+  message    String
+  isRead     Boolean          @default(false)
+  createdAt  DateTime         @default(now())
+}
+
+// ─── PAYMENT ──────────────────────────────────────────────────────────────────
+
+model Payment {
+  id                String        @id @default(uuid())
+  booking           Booking       @relation(fields: [bookingId], references: [id])
+  bookingId         String        @unique
+  amount            Float
+  currency          String        @default("INR")
+  status            PaymentStatus @default(PENDING)
+  razorpayOrderId   String?
+  razorpayPaymentId String?
+  razorpaySignature String?
+  paidAt            DateTime?
+  createdAt         DateTime      @default(now())
+}
