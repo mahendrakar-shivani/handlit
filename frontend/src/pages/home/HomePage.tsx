@@ -1,34 +1,38 @@
-import { useAuth } from '../../hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
+import Navbar from '../../components/Navbar';
+import { useAuth } from '../../hooks/useAuth';
 
 const HomePage = () => {
-  const { user, logout } = useAuth();
+  const { user } = useAuth();
   const navigate = useNavigate();
 
-  const handleLogout = () => {
-    logout();
-    navigate('/login');
-  };
+  const quickLinks = [
+    { label: 'Browse Services',  path: '/services',     emoji: '🛠️', desc: 'Find the service you need' },
+    { label: 'Find Providers',   path: '/providers',    emoji: '👷', desc: 'Browse verified professionals' },
+    { label: 'My Bookings',      path: '/my-bookings',  emoji: '📋', desc: 'Track your bookings' },
+    { label: 'Notifications',    path: '/notifications',emoji: '🔔', desc: 'Stay updated' },
+  ];
 
   return (
-    <div style={styles.container}>
-      <div style={styles.navbar}>
-        <h1 style={styles.logo}>Handlit</h1>
-        <div style={styles.navRight}>
-          <span style={styles.welcome}>Hello, {user?.name}</span>
-          <button style={styles.logoutBtn} onClick={handleLogout}>
-            Logout
-          </button>
+    <div style={styles.page}>
+      <Navbar />
+      <div style={styles.container}>
+        <div style={styles.hero}>
+          <h1 style={styles.heroTitle}>Welcome back, {user?.name}! 👋</h1>
+          <p style={styles.heroSub}>What would you like to do today?</p>
         </div>
-      </div>
-      <div style={styles.content}>
-        <h2 style={styles.heading}>Welcome to Handlit 👋</h2>
-        <p style={styles.sub}>Your service provider platform is up and running.</p>
-        <div style={styles.infoCard}>
-          <p><strong>Name:</strong> {user?.name}</p>
-          <p><strong>Email:</strong> {user?.email}</p>
-          <p><strong>Role:</strong> {user?.role}</p>
-          <p><strong>ID:</strong> {user?.id}</p>
+        <div style={styles.grid}>
+          {quickLinks.map((link) => (
+            <div
+              key={link.path}
+              style={styles.card}
+              onClick={() => navigate(link.path)}
+            >
+              <span style={styles.emoji}>{link.emoji}</span>
+              <h3 style={styles.cardTitle}>{link.label}</h3>
+              <p style={styles.cardDesc}>{link.desc}</p>
+            </div>
+          ))}
         </div>
       </div>
     </div>
@@ -36,28 +40,25 @@ const HomePage = () => {
 };
 
 const styles: Record<string, React.CSSProperties> = {
-  container: { minHeight: '100vh', backgroundColor: '#f3f4f6' },
-  navbar: {
-    backgroundColor: '#fff', padding: '16px 32px',
-    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-    boxShadow: '0 1px 4px rgba(0,0,0,0.08)',
+  page: { minHeight: '100vh', backgroundColor: '#f3f4f6' },
+  container: { maxWidth: 900, margin: '0 auto', padding: '40px 24px' },
+  hero: { marginBottom: 40 },
+  heroTitle: { fontSize: 32, fontWeight: 700, color: '#111827', marginBottom: 8 },
+  heroSub: { fontSize: 16, color: '#6b7280' },
+  grid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
+    gap: 20,
   },
-  logo: { fontSize: 22, fontWeight: 700, color: '#1a56db', margin: 0 },
-  navRight: { display: 'flex', alignItems: 'center', gap: 16 },
-  welcome: { fontSize: 14, color: '#374151' },
-  logoutBtn: {
-    padding: '8px 16px', backgroundColor: '#ef4444',
-    color: '#fff', border: 'none', borderRadius: 8,
-    fontSize: 14, fontWeight: 500, cursor: 'pointer',
+  card: {
+    backgroundColor: '#fff', borderRadius: 12, padding: 28,
+    boxShadow: '0 2px 8px rgba(0,0,0,0.06)', cursor: 'pointer',
+    transition: 'transform 0.1s',
+    display: 'flex', flexDirection: 'column', gap: 10,
   },
-  content: { padding: 40 },
-  heading: { fontSize: 24, fontWeight: 700, color: '#111827', marginBottom: 8 },
-  sub: { fontSize: 15, color: '#6b7280', marginBottom: 24 },
-  infoCard: {
-    backgroundColor: '#fff', padding: 24, borderRadius: 12,
-    boxShadow: '0 2px 8px rgba(0,0,0,0.06)', maxWidth: 400,
-    lineHeight: 2, fontSize: 14, color: '#374151',
-  },
+  emoji: { fontSize: 36 },
+  cardTitle: { fontSize: 16, fontWeight: 600, color: '#111827', margin: 0 },
+  cardDesc: { fontSize: 13, color: '#6b7280', margin: 0 },
 };
 
 export default HomePage;
