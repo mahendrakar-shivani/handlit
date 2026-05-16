@@ -9,5 +9,7 @@ router.get('/:id',        servicesController.getService);
 router.post('/',          protect, adminOnly, servicesController.createService);
 router.patch('/:id',      protect, adminOnly, servicesController.updateService);
 router.delete('/:id',     protect, adminOnly, servicesController.deleteService);
+router.get('/categories',  servicesController.getCategories);
+router.post('/categories', protect, adminOnly, servicesController.createCategory);
 
 export default router;
