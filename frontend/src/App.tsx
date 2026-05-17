@@ -10,6 +10,8 @@ import BookingPage         from './pages/bookings/BookingPage';
 import MyBookingsPage      from './pages/bookings/MyBookingsPage';
 import NotificationsPage   from './pages/notifications/NotificationsPage';
 import ProfilePage         from './pages/profile/ProfilePage';
+import ProviderLoginPage   from './pages/provider/ProviderLoginPage';
+import ProviderDashboard   from './pages/provider/ProviderDashboard';
 import ProtectedRoute      from './components/ProtectedRoute';
 
 const Protected = ({ children }: { children: React.ReactNode }) => (
@@ -21,11 +23,12 @@ function App() {
     <BrowserRouter>
       <Routes>
         {/* Public */}
-        <Route path="/login"           element={<LoginPage />} />
-        <Route path="/register"        element={<RegisterPage />} />
-        <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+        <Route path="/login"              element={<LoginPage />} />
+        <Route path="/register"           element={<RegisterPage />} />
+        <Route path="/forgot-password"    element={<ForgotPasswordPage />} />
+        <Route path="/provider/login"     element={<ProviderLoginPage />} />
 
-        {/* Protected */}
+        {/* Protected - Users */}
         <Route path="/"              element={<Protected><HomePage /></Protected>} />
         <Route path="/services"      element={<Protected><ServicesPage /></Protected>} />
         <Route path="/providers"     element={<Protected><ProvidersPage /></Protected>} />
@@ -34,6 +37,9 @@ function App() {
         <Route path="/my-bookings"   element={<Protected><MyBookingsPage /></Protected>} />
         <Route path="/notifications" element={<Protected><NotificationsPage /></Protected>} />
         <Route path="/profile"       element={<Protected><ProfilePage /></Protected>} />
+
+        {/* Protected - Provider */}
+        <Route path="/provider/dashboard" element={<Protected><ProviderDashboard /></Protected>} />
 
         <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>

@@ -25,20 +25,25 @@ const ServicesPage = () => {
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(false);
 
-  // Load Categories
   useEffect(() => {
     const fetchCategories = async () => {
       try {
         const data = await getCategories();
-        setCategories(data || []);
+        if (Array.isArray(data)) {
+          setCategories(data);
+        } else if (data && Array.isArray(data.categories)) {
+          setCategories(data.categories);
+        } else {
+          setCategories([]);
+        }
       } catch (error) {
         console.error(error);
+        setCategories([]);
       }
     };
     fetchCategories();
   }, []);
 
-  // Load Services — define and call inside useEffect to avoid useCallback cascade warning
   useEffect(() => {
     let cancelled = false;
 
@@ -50,10 +55,17 @@ const ServicesPage = () => {
           search: search || undefined,
         });
         if (!cancelled) {
-          setServices(data.services || []);
+          if (Array.isArray(data)) {
+            setServices(data);
+          } else if (data && Array.isArray(data.services)) {
+            setServices(data.services);
+          } else {
+            setServices([]);
+          }
         }
       } catch (error) {
         console.error(error);
+        if (!cancelled) setServices([]);
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -73,7 +85,6 @@ const ServicesPage = () => {
         <h1 style={styles.heading}>Our Services</h1>
         <p style={styles.sub}>Find the right service for your needs</p>
 
-        {/* Filters */}
         <div style={styles.filters}>
           <input
             style={styles.searchInput}
@@ -95,7 +106,6 @@ const ServicesPage = () => {
           </select>
         </div>
 
-        {/* Services */}
         {loading ? (
           <div style={styles.center}>Loading services...</div>
         ) : services.length === 0 ? (
