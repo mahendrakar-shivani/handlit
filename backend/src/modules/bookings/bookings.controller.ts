@@ -66,3 +66,12 @@ export const cancelBooking = async (req: any, res: Response) => {
     res.status(400).json({ message: err.message });
   }
 };
+
+export const inProgressBooking = async (req: any, res: Response) => {
+  try {
+    const booking = await bookingsService.updateBookingStatus(req.params['id'], 'IN_PROGRESS', req.user.id);
+    res.status(200).json(booking);
+  } catch (err: any) {
+    res.status(400).json({ message: err.message });
+  }
+};

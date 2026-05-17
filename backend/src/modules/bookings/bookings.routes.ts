@@ -10,5 +10,5 @@ router.get('/:id',                 protect, bookingsController.getBooking);
 router.patch('/:id/confirm',       protect, bookingsController.confirmBooking);
 router.patch('/:id/complete',      protect, bookingsController.completeBooking);
 router.patch('/:id/cancel',        protect, bookingsController.cancelBooking);
-
+router.patch('/:id/inprogress', protect, bookingsController.inProgressBooking);
 export default router;
