@@ -11,6 +11,7 @@ import bookingRoutes      from './modules/bookings/bookings.routes';
 import reviewRoutes       from './modules/reviews/reviews.routes';
 import notificationRoutes from './modules/notifications/notifications.routes';
 import paymentRoutes      from './modules/payments/payments.routes';
+import adminRoutes from './modules/admin/admin.routes';
 
 const app = express();
 
@@ -27,7 +28,7 @@ app.use('/api/notifications', notificationRoutes);
 app.use('/api/payments',      paymentRoutes);
 app.use('/api/categories', serviceRoutes);
 app.get('/health', (_, res) => res.json({ status: 'ok', message: 'Handlit API running' }));
-
+app.use('/api/admin', adminRoutes);
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);
