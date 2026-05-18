@@ -22,20 +22,12 @@ enum BookingStatus {
   CANCELLED
 }
 
-enum PaymentStatus {
-  PENDING
-  SUCCESS
-  FAILED
-  REFUNDED
-}
 
 enum NotificationType {
   BOOKING_CREATED
   BOOKING_CONFIRMED
   BOOKING_CANCELLED
   BOOKING_COMPLETED
-  PAYMENT_SUCCESS
-  PAYMENT_FAILED
   GENERAL
 }
 
@@ -130,7 +122,6 @@ model Booking {
   createdAt   DateTime      @default(now())
   updatedAt   DateTime      @updatedAt
   review      Review?
-  payment     Payment?
 }
 
 // ─── REVIEW ───────────────────────────────────────────────────────────────────
@@ -163,18 +154,4 @@ model Notification {
   createdAt  DateTime         @default(now())
 }
 
-// ─── PAYMENT ──────────────────────────────────────────────────────────────────
 
-model Payment {
-  id                String        @id @default(uuid())
-  booking           Booking       @relation(fields: [bookingId], references: [id])
-  bookingId         String        @unique
-  amount            Float
-  currency          String        @default("INR")
-  status            PaymentStatus @default(PENDING)
-  razorpayOrderId   String?
-  razorpayPaymentId String?
-  razorpaySignature String?
-  paidAt            DateTime?
-  createdAt         DateTime      @default(now())
-}

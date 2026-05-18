@@ -8,7 +8,8 @@
     "start": "node dist/server.js",
     "prisma:migrate": "npx prisma migrate dev",
     "prisma:studio": "npx prisma studio",
-    "prisma:generate": "npx prisma generate"
+    "prisma:generate": "npx prisma generate",
+    "seed": "ts-node prisma/seed.ts"
   },
   "keywords": [],
   "author": "",
@@ -30,7 +31,7 @@
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.6",
     "@types/jsonwebtoken": "^9.0.10",
-    "@types/node": "^25.5.2",
+    "@types/node": "^25.8.0",
     "@types/nodemailer": "^8.0.0",
     "nodemon": "^3.1.14",
     "prisma": "^6.19.3",

@@ -21,7 +21,12 @@ const LoginPage = () => {
     try {
       const res = await api.post('/auth/login', form);
       login(res.data.user, res.data.token);
-      navigate('/');
+
+      if (res.data.user.role.toLowerCase() === 'admin') {
+        window.location.href = '/admin'; // ✅ full reload so AuthContext reads fresh localStorage
+      } else {
+        navigate('/');
+      }
     } catch (err: unknown) {
       const error = err as { response?: { data?: { message?: string } } };
       setError(error.response?.data?.message || 'Login failed');

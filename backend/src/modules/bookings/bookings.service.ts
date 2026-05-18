@@ -55,7 +55,7 @@ export const getBookingById = async (id: string) => {
       provider: true,
       service: true,
       review: true,
-      payment: true,
+      // payment relation removed
     },
   });
   if (!booking) throw new Error('Booking not found');
