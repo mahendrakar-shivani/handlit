@@ -10,7 +10,6 @@ import serviceRoutes      from './modules/services/services.routes';
 import bookingRoutes      from './modules/bookings/bookings.routes';
 import reviewRoutes       from './modules/reviews/reviews.routes';
 import notificationRoutes from './modules/notifications/notifications.routes';
-import paymentRoutes      from './modules/payments/payments.routes';
 import adminRoutes from './modules/admin/admin.routes';
 
 const app = express();
@@ -25,7 +24,6 @@ app.use('/api/services',      serviceRoutes);
 app.use('/api/bookings',      bookingRoutes);
 app.use('/api/reviews',       reviewRoutes);
 app.use('/api/notifications', notificationRoutes);
-app.use('/api/payments',      paymentRoutes);
 app.use('/api/categories', serviceRoutes);
 app.get('/health', (_, res) => res.json({ status: 'ok', message: 'Handlit API running' }));
 app.use('/api/admin', adminRoutes);

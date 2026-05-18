@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import Navbar from '../../components/Navbar';
 import { getMyBookings, cancelBooking } from '../../services/bookingsService';
-import { createOrder, verifyPayment } from '../../services/paymentsService';
 import { createReview } from '../../services/reviewsService';
 
 interface Booking {
@@ -12,12 +11,7 @@ interface Booking {
   totalAmount: number;
   service: { name: string };
   provider: { id: string; name: string };
-  payment?: { status: string };
   review?: { id: string };
-}
-
-interface RazorpayConstructor {
-  new (options: object): { open: () => void };
 }
 
 const statusColors: Record<string, { bg: string; color: string }> = {
@@ -33,7 +27,6 @@ const MyBookingsPage = () => {
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('');
   const [refresh, setRefresh] = useState(0);
-  const [processingId, setProcessingId] = useState<string | null>(null);
   const [reviewModal, setReviewModal] = useState<{
     bookingId: string;
     providerId: string;
@@ -45,24 +38,19 @@ const MyBookingsPage = () => {
   const refetch = () => setRefresh((r) => r + 1);
 
   useEffect(() => {
-    const controller = new AbortController();
-    const signal = controller.signal;
+  let cancelled = false;
 
-    async function load() {
-      setLoading(true);
-      try {
-        const data = await getMyBookings({ status: filter || undefined });
-        if (!signal.aborted) setBookings(data.bookings || []);
-      } catch (err) {
-        if (!signal.aborted) console.error(err);
-      } finally {
-        if (!signal.aborted) setLoading(false);
-      }
-    }
+  getMyBookings({ status: filter || undefined })
+    .then((data) => {
+      if (!cancelled) setBookings(data.bookings || []);
+    })
+    .catch(console.error)
+    .finally(() => {
+      if (!cancelled) setLoading(false);
+    });
 
-    load();
-    return () => controller.abort();
-  }, [filter, refresh]);
+  return () => { cancelled = true; };
+}, [filter, refresh]);
 
   const handleCancel = async (id: string) => {
     if (!confirm('Cancel this booking?')) return;
@@ -71,47 +59,6 @@ const MyBookingsPage = () => {
       refetch();
     } catch {
       alert('Could not cancel booking');
-    }
-  };
-
-  const handlePayment = async (booking: Booking) => {
-    setProcessingId(booking.id);
-    try {
-      const order = await createOrder(booking.id);
-      const options = {
-        key: import.meta.env.VITE_RAZORPAY_KEY_ID,
-        amount: order.amount,
-        currency: order.currency,
-        name: 'Handlit',
-        description: booking.service.name,
-        order_id: order.id,
-        handler: async (response: {
-          razorpay_order_id: string;
-          razorpay_payment_id: string;
-          razorpay_signature: string;
-        }) => {
-          try {
-            await verifyPayment({
-              razorpayOrderId: response.razorpay_order_id,
-              razorpayPaymentId: response.razorpay_payment_id,
-              razorpaySignature: response.razorpay_signature,
-            });
-            alert('Payment successful!');
-            refetch();
-          } catch {
-            alert('Payment verification failed');
-          }
-        },
-        prefill: { name: 'Test User', email: 'test@handlit.com' },
-        theme: { color: '#1a56db' },
-      };
-      const RazorpayClass = (window as unknown as { Razorpay: RazorpayConstructor }).Razorpay;
-      const razorpay = new RazorpayClass(options);
-      razorpay.open();
-    } catch {
-      alert('Could not initiate payment');
-    } finally {
-      setProcessingId(null);
     }
   };
 
@@ -163,7 +110,6 @@ const MyBookingsPage = () => {
           <div style={styles.list}>
             {bookings.map((booking) => {
               const sc = statusColors[booking.status] || statusColors.PENDING;
-              const isPaid = booking.payment?.status === 'SUCCESS';
               return (
                 <div key={booking.id} style={styles.card}>
                   <div style={styles.cardHeader}>
@@ -171,35 +117,37 @@ const MyBookingsPage = () => {
                       <h3 style={styles.serviceName}>{booking.service.name}</h3>
                       <p style={styles.providerName}>by {booking.provider.name}</p>
                     </div>
-                    <span style={{ ...styles.statusBadge, backgroundColor: sc.bg, color: sc.color }}>
+                    <span style={{
+                      ...styles.statusBadge,
+                      backgroundColor: sc.bg,
+                      color: sc.color,
+                    }}>
                       {booking.status}
                     </span>
                   </div>
+
                   <div style={styles.details}>
                     <span>📅 {new Date(booking.scheduledAt).toLocaleString()}</span>
                     <span>📍 {booking.address}</span>
                     <span>💰 ₹{booking.totalAmount}</span>
-                    {isPaid && <span style={styles.paidBadge}>✅ Paid</span>}
                   </div>
+
                   <div style={styles.btnRow}>
-                    {booking.status === 'PENDING' && !isPaid && (
-                      <>
-                        <button
-                          style={styles.payBtn}
-                          onClick={() => handlePayment(booking)}
-                          disabled={processingId === booking.id}
-                        >
-                          {processingId === booking.id ? 'Processing...' : '💳 Pay Now'}
-                        </button>
-                        <button style={styles.cancelBtn} onClick={() => handleCancel(booking.id)}>
-                          Cancel
-                        </button>
-                      </>
+                    {booking.status === 'PENDING' && (
+                      <button
+                        style={styles.cancelBtn}
+                        onClick={() => handleCancel(booking.id)}
+                      >
+                        Cancel Booking
+                      </button>
                     )}
                     {booking.status === 'COMPLETED' && !booking.review && (
                       <button
                         style={styles.reviewBtn}
-                        onClick={() => setReviewModal({ bookingId: booking.id, providerId: booking.provider.id })}
+                        onClick={() => setReviewModal({
+                          bookingId: booking.id,
+                          providerId: booking.provider.id,
+                        })}
                       >
                         ⭐ Write Review
                       </button>
@@ -220,7 +168,10 @@ const MyBookingsPage = () => {
               {[1, 2, 3, 4, 5].map((star) => (
                 <span
                   key={star}
-                  style={{ fontSize: 32, cursor: 'pointer', color: star <= rating ? '#f59e0b' : '#d1d5db' }}
+                  style={{
+                    fontSize: 32, cursor: 'pointer',
+                    color: star <= rating ? '#f59e0b' : '#d1d5db',
+                  }}
                   onClick={() => setRating(star)}
                 >★</span>
               ))}
@@ -233,8 +184,10 @@ const MyBookingsPage = () => {
               rows={4}
             />
             <div style={styles.modalBtns}>
-              <button style={styles.cancelBtn} onClick={() => setReviewModal(null)}>Cancel</button>
-              <button style={styles.payBtn} onClick={handleReview} disabled={reviewLoading}>
+              <button style={styles.cancelBtn} onClick={() => setReviewModal(null)}>
+                Cancel
+              </button>
+              <button style={styles.submitBtn} onClick={handleReview} disabled={reviewLoading}>
                 {reviewLoading ? 'Submitting...' : 'Submit Review'}
               </button>
             </div>
@@ -252,29 +205,33 @@ const styles: Record<string, React.CSSProperties> = {
   filters: { display: 'flex', gap: 8, marginBottom: 28, flexWrap: 'wrap' },
   filterBtn: {
     padding: '7px 16px', borderRadius: 20, border: '1px solid #d1d5db',
-    backgroundColor: '#fff', fontSize: 13, cursor: 'pointer', fontWeight: 500, color: '#374151',
+    backgroundColor: '#fff', fontSize: 13, cursor: 'pointer',
+    fontWeight: 500, color: '#374151',
   },
   activeFilter: { backgroundColor: '#1a56db', color: '#fff', border: '1px solid #1a56db' },
   list: { display: 'flex', flexDirection: 'column', gap: 16 },
-  card: { backgroundColor: '#fff', borderRadius: 12, padding: 24, boxShadow: '0 2px 8px rgba(0,0,0,0.06)' },
-  cardHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 },
+  card: {
+    backgroundColor: '#fff', borderRadius: 12, padding: 24,
+    boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
+  },
+  cardHeader: {
+    display: 'flex', justifyContent: 'space-between',
+    alignItems: 'flex-start', marginBottom: 16,
+  },
   serviceName: { fontSize: 18, fontWeight: 600, color: '#111827', margin: '0 0 4px 0' },
   providerName: { fontSize: 14, color: '#6b7280', margin: 0 },
   statusBadge: { padding: '4px 12px', borderRadius: 20, fontSize: 12, fontWeight: 600 },
   details: { display: 'flex', flexDirection: 'column', gap: 6, fontSize: 14, color: '#374151' },
-  paidBadge: { color: '#057a55', fontWeight: 600, fontSize: 13 },
   btnRow: { display: 'flex', gap: 12, marginTop: 16 },
-  payBtn: {
-    padding: '9px 24px', backgroundColor: '#1a56db', color: '#fff',
-    border: 'none', borderRadius: 8, fontSize: 14, fontWeight: 600, cursor: 'pointer',
-  },
   cancelBtn: {
-    padding: '9px 20px', backgroundColor: '#fee2e2', color: '#dc2626',
-    border: '1px solid #fca5a5', borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer',
+    padding: '9px 20px', backgroundColor: '#fee2e2',
+    color: '#dc2626', border: '1px solid #fca5a5',
+    borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer',
   },
   reviewBtn: {
-    padding: '9px 20px', backgroundColor: '#fef3c7', color: '#92400e',
-    border: '1px solid #fde68a', borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer',
+    padding: '9px 20px', backgroundColor: '#fef3c7',
+    color: '#92400e', border: '1px solid #fde68a',
+    borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer',
   },
   center: { textAlign: 'center', padding: 60, color: '#6b7280', fontSize: 16 },
   overlay: {
@@ -284,15 +241,22 @@ const styles: Record<string, React.CSSProperties> = {
   },
   modal: {
     backgroundColor: '#fff', borderRadius: 16, padding: 32,
-    width: '100%', maxWidth: 440, boxShadow: '0 8px 32px rgba(0,0,0,0.12)',
+    width: '100%', maxWidth: 440,
+    boxShadow: '0 8px 32px rgba(0,0,0,0.12)',
   },
   modalTitle: { fontSize: 20, fontWeight: 700, color: '#111827', marginBottom: 20 },
   ratingRow: { display: 'flex', gap: 8, marginBottom: 16 },
   reviewInput: {
-    width: '100%', padding: '10px 12px', borderRadius: 8, border: '1px solid #d1d5db',
-    fontSize: 14, outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit', resize: 'vertical',
+    width: '100%', padding: '10px 12px', borderRadius: 8,
+    border: '1px solid #d1d5db', fontSize: 14, outline: 'none',
+    boxSizing: 'border-box', fontFamily: 'inherit', resize: 'vertical',
   },
   modalBtns: { display: 'flex', gap: 12, marginTop: 20 },
+  submitBtn: {
+    padding: '9px 24px', backgroundColor: '#1a56db',
+    color: '#fff', border: 'none', borderRadius: 8,
+    fontSize: 14, fontWeight: 600, cursor: 'pointer',
+  },
 };
 
 export default MyBookingsPage;
