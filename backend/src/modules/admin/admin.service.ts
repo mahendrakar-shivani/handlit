@@ -3,15 +3,13 @@ import prisma from "../../utils/prisma";
 export const getDashboardStats = async () => {
   try {
     const totalUsers = await prisma.user.count({ where: { deletedAt: null } });
-    console.log("✅ totalUsers:", totalUsers);
-
-    const totalProviders = await prisma.provider.count({
-      where: { deletedAt: null },
-    });
-    console.log("✅ totalProviders:", totalProviders);
-
+    const totalProviders = await prisma.provider.count({ where: { deletedAt: null } });
     const totalBookings = await prisma.booking.count();
-    console.log("✅ totalBookings:", totalBookings);
+
+    const revenueResult = await prisma.booking.aggregate({
+      where: { status: 'COMPLETED' },
+      _sum: { totalAmount: true },
+    });
 
     const recentBookings = await prisma.booking.findMany({
       take: 5,
@@ -22,19 +20,17 @@ export const getDashboardStats = async () => {
         service: { select: { name: true } },
       },
     });
-    console.log("✅ recentBookings fetched");
 
     const bookingsByStatus = await prisma.booking.groupBy({
       by: ["status"],
       _count: { status: true },
     });
-    console.log("✅ bookingsByStatus:", bookingsByStatus);
 
     return {
       totalUsers,
       totalProviders,
       totalBookings,
-      totalRevenue: 0,
+      totalRevenue: revenueResult._sum.totalAmount || 0,
       recentBookings,
       bookingsByStatus,
     };
@@ -43,6 +39,7 @@ export const getDashboardStats = async () => {
     throw err;
   }
 };
+
 export const getAllUsers = async (page = 1, limit = 10) => {
   const where = { deletedAt: null };
   const users = await prisma.user.findMany({
@@ -50,12 +47,8 @@ export const getAllUsers = async (page = 1, limit = 10) => {
     skip: (page - 1) * limit,
     take: limit,
     select: {
-      id: true,
-      name: true,
-      email: true,
-      phone: true,
-      role: true,
-      createdAt: true,
+      id: true, name: true, email: true,
+      phone: true, role: true, createdAt: true,
     },
     orderBy: { createdAt: "desc" },
   });
@@ -70,13 +63,8 @@ export const getAllProviders = async (page = 1, limit = 10) => {
     skip: (page - 1) * limit,
     take: limit,
     select: {
-      id: true,
-      name: true,
-      email: true,
-      phone: true,
-      rating: true,
-      isVerified: true,
-      createdAt: true,
+      id: true, name: true, email: true,
+      phone: true, rating: true, isVerified: true, createdAt: true,
     },
     orderBy: { createdAt: "desc" },
   });
@@ -106,7 +94,6 @@ export const getAllBookingsAdmin = async (page = 1, limit = 10) => {
       user: { select: { name: true, email: true } },
       provider: { select: { name: true } },
       service: { select: { name: true } },
-      // payment include removed
     },
     orderBy: { createdAt: "desc" },
   });
