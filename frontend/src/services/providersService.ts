@@ -1,11 +1,15 @@
-import api from './api';
+import api from "./api";
 
 export const getProviders = async (params?: {
   search?: string;
   page?: number;
   limit?: number;
+  serviceId?: string;
 }) => {
-  const res = await api.get('/providers', { params });
+  const res = await api.get("/providers", {
+    params,
+  });
+
   return res.data;
 };
 
@@ -16,5 +20,6 @@ export const getProviderById = async (id: string) => {
 
 export const getProviderReviews = async (providerId: string) => {
   const res = await api.get(`/reviews/provider/${providerId}`);
+
   return res.data;
 };
