@@ -5,7 +5,6 @@ import { useAuth } from "../../hooks/useAuth";
 
 const LoginPage = () => {
   const navigate = useNavigate();
-
   const { login } = useAuth();
 
   const [role, setRole] = useState("customer");
@@ -29,18 +28,18 @@ const LoginPage = () => {
     e.preventDefault();
 
     setLoading(true);
-
     setError("");
 
     try {
-      let endpoint = "/api/auth/login";
+      // IMPORTANT: NO /api here
+      let endpoint = "/auth/login";
 
       if (role === "provider") {
-        endpoint = "/api/providers/login";
+        endpoint = "/providers/login";
       }
 
       if (role === "admin") {
-        endpoint = "/api/admin/login";
+        endpoint = "/admin/login";
       }
 
       const res = await api.post(endpoint, form);
@@ -67,6 +66,8 @@ const LoginPage = () => {
         navigate("/");
       }
     } catch (err: unknown) {
+      console.log(err);
+
       const error = err as {
         response?: {
           data?: {
@@ -153,22 +154,19 @@ const styles: Record<string, React.CSSProperties> = {
   container: {
     minHeight: "100vh",
     display: "flex",
-    alignItems: "center",
     justifyContent: "center",
+    alignItems: "center",
     background: "#f3f4f6",
   },
 
   card: {
-    background: "#fff",
-    padding: 40,
-    borderRadius: 12,
-    width: "100%",
-    maxWidth: 420,
+    width: "420px",
+    background: "white",
+    padding: "40px",
+    borderRadius: "12px",
   },
 
   title: {
-    fontSize: 28,
-    fontWeight: 700,
     color: "#1a56db",
   },
 
@@ -197,14 +195,14 @@ const styles: Record<string, React.CSSProperties> = {
     padding: "12px",
     background: "#1a56db",
     border: "none",
-    borderRadius: "8px",
     color: "white",
+    borderRadius: "8px",
   },
 
   error: {
     background: "#fee2e2",
     padding: "10px",
-    marginBottom: "16px",
+    marginBottom: "15px",
     color: "red",
   },
 
