@@ -69,39 +69,44 @@ export const loginProvider = async (
   password: string
 ) => {
 
-  const provider =
-    await prisma.provider.findUnique({
-      where: { email }
-    });
+  const provider = await prisma.provider.findUnique({
+    where: {
+      email,
+    },
+  });
 
   if (!provider) {
-    throw new Error('Invalid credentials');
+    throw new Error("Invalid credentials");
   }
 
-  const match =
-    await bcrypt.compare(
-      password,
-      provider.password
-    );
+  const match = await bcrypt.compare(
+    password,
+    provider.password
+  );
 
   if (!match) {
-    throw new Error('Invalid credentials');
+    throw new Error("Invalid credentials");
   }
 
-  const token =
-    signToken(
-      provider.id,
-      'PROVIDER'
-    );
+  const token = jwt.sign(
+    {
+      id: provider.id,
+      role: "PROVIDER",
+    },
+    process.env.JWT_SECRET as string,
+    {
+      expiresIn: "7d",
+    }
+  );
 
   return {
     provider: {
       id: provider.id,
       name: provider.name,
       email: provider.email,
-      phone: provider.phone
+      role: "PROVIDER",
     },
-    token
+    token,
   };
 };
 
