@@ -3,14 +3,14 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
-    "dev": "nodemon src/server.ts",
-    "build": "tsc",
-    "start": "node dist/server.js",
-    "prisma:migrate": "npx prisma migrate dev",
-    "prisma:studio": "npx prisma studio",
-    "prisma:generate": "npx prisma generate",
-    "seed": "ts-node prisma/seed.ts"
-  },
+  "dev": "nodemon src/server.ts",
+  "build": "cd ../frontend && npm install && npm run build && cd ../backend && npx prisma generate && tsc",
+  "start": "node dist/server.js",
+  "seed": "ts-node prisma/seed.ts",
+  "prisma:migrate": "npx prisma migrate dev",
+  "prisma:studio": "npx prisma studio",
+  "prisma:generate": "npx prisma generate"
+},
   "keywords": [],
   "author": "",
   "license": "ISC",
