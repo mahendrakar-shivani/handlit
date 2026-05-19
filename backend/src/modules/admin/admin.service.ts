@@ -1,102 +1,131 @@
 import prisma from "../../utils/prisma";
+import bcrypt from "bcryptjs";
+import jwt from "jsonwebtoken";
 
-export const getDashboardStats = async () => {
-  try {
-    const totalUsers = await prisma.user.count({ where: { deletedAt: null } });
-    const totalProviders = await prisma.provider.count({ where: { deletedAt: null } });
-    const totalBookings = await prisma.booking.count();
 
-    const revenueResult = await prisma.booking.aggregate({
-      where: { status: 'COMPLETED' },
-      _sum: { totalAmount: true },
-    });
+export const loginAdmin = async (
+  email: string,
+  password: string
+) => {
 
-    const recentBookings = await prisma.booking.findMany({
-      take: 5,
-      orderBy: { createdAt: "desc" },
-      include: {
-        user: { select: { name: true, email: true } },
-        provider: { select: { name: true } },
-        service: { select: { name: true } },
+  // temporary hardcoded admin login
+  if (
+    email === "admin@handlit.com" &&
+    password === "Admin@123"
+  ) {
+
+    const token = jwt.sign(
+      {
+        email,
+        role: "ADMIN"
       },
-    });
-
-    const bookingsByStatus = await prisma.booking.groupBy({
-      by: ["status"],
-      _count: { status: true },
-    });
+      process.env.JWT_SECRET as string,
+      {
+        expiresIn: "7d"
+      }
+    );
 
     return {
-      totalUsers,
-      totalProviders,
-      totalBookings,
-      totalRevenue: revenueResult._sum.totalAmount || 0,
-      recentBookings,
-      bookingsByStatus,
+      admin: {
+        email,
+        role: "ADMIN"
+      },
+      token
     };
-  } catch (err) {
-    console.error("❌ getDashboardStats error:", err);
-    throw err;
   }
+
+  throw new Error("Invalid credentials");
 };
 
-export const getAllUsers = async (page = 1, limit = 10) => {
-  const where = { deletedAt: null };
-  const users = await prisma.user.findMany({
-    where,
-    skip: (page - 1) * limit,
-    take: limit,
-    select: {
-      id: true, name: true, email: true,
-      phone: true, role: true, createdAt: true,
-    },
-    orderBy: { createdAt: "desc" },
+
+
+export const getDashboardStats = async () => {
+
+  const totalUsers =
+    await prisma.user.count();
+
+  const totalProviders =
+    await prisma.provider.count();
+
+  const totalBookings =
+    await prisma.booking.count();
+
+  return {
+    totalUsers,
+    totalProviders,
+    totalBookings
+  };
+};
+
+
+
+export const getAllUsers = async () => {
+
+  return prisma.user.findMany({
+    where: {
+      deletedAt: null
+    }
   });
-  const total = await prisma.user.count({ where });
-  return { users, total };
+
 };
 
-export const getAllProviders = async (page = 1, limit = 10) => {
-  const where = { deletedAt: null };
-  const providers = await prisma.provider.findMany({
-    where,
-    skip: (page - 1) * limit,
-    take: limit,
-    select: {
-      id: true, name: true, email: true,
-      phone: true, rating: true, isVerified: true, createdAt: true,
-    },
-    orderBy: { createdAt: "desc" },
+
+
+export const getAllProviders = async () => {
+
+  return prisma.provider.findMany({
+    where: {
+      deletedAt: null
+    }
   });
-  const total = await prisma.provider.count({ where });
-  return { providers, total };
+
 };
 
-export const verifyProvider = async (id: string) => {
+
+
+export const verifyProvider = async (
+  id: string
+) => {
+
   return prisma.provider.update({
-    where: { id },
-    data: { isVerified: true },
-  });
-};
-
-export const banUser = async (id: string) => {
-  return prisma.user.update({
-    where: { id },
-    data: { deletedAt: new Date() },
-  });
-};
-
-export const getAllBookingsAdmin = async (page = 1, limit = 10) => {
-  const bookings = await prisma.booking.findMany({
-    skip: (page - 1) * limit,
-    take: limit,
-    include: {
-      user: { select: { name: true, email: true } },
-      provider: { select: { name: true } },
-      service: { select: { name: true } },
+    where: {
+      id
     },
-    orderBy: { createdAt: "desc" },
+    data: {
+      isVerified: true
+    }
   });
-  const total = await prisma.booking.count();
-  return { bookings, total };
+
+};
+
+
+
+export const banUser = async (
+  id: string
+) => {
+
+  return prisma.user.update({
+    where: {
+      id
+    },
+    data: {
+      deletedAt: new Date()
+    }
+  });
+
+};
+
+
+
+export const getAllBookingsAdmin =
+async () => {
+
+  return prisma.booking.findMany({
+    include: {
+      user: true,
+      provider: true,
+      service: true
+    }
+  });
+
 };
