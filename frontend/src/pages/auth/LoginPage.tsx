@@ -5,14 +5,16 @@ import { useAuth } from "../../hooks/useAuth";
 
 const LoginPage = () => {
   const navigate = useNavigate();
+
   const { login } = useAuth();
+
+  const [role, setRole] = useState("customer");
 
   const [form, setForm] = useState({
     email: "",
     password: "",
   });
 
-  const [role, setRole] = useState("customer");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -26,28 +28,39 @@ const LoginPage = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    setError("");
     setLoading(true);
 
+    setError("");
+
     try {
-      let endpoint = "/auth/login";
+      let endpoint = "/api/auth/login";
 
       if (role === "provider") {
-        endpoint = "/providers/login";
+        endpoint = "/api/providers/login";
       }
 
       if (role === "admin") {
-        endpoint = "/admin/login";
+        endpoint = "/api/admin/login";
       }
 
       const res = await api.post(endpoint, form);
 
       const user = res.data.user || res.data.provider || res.data.admin;
 
-      login(user, res.data.token);
+      const token = res.data.token;
+
+      if (!token) {
+        throw new Error("No token received");
+      }
+
+      localStorage.setItem("token", token);
+
+      localStorage.setItem("user", JSON.stringify(user));
+
+      login(user, token);
 
       if (role === "admin") {
-        window.location.href = "/admin";
+        navigate("/admin");
       } else if (role === "provider") {
         navigate("/provider");
       } else {
@@ -99,9 +112,8 @@ const LoginPage = () => {
 
             <input
               style={styles.input}
-              type="email"
               name="email"
-              placeholder="you@email.com"
+              type="email"
               value={form.email}
               onChange={handleChange}
               required
@@ -113,24 +125,12 @@ const LoginPage = () => {
 
             <input
               style={styles.input}
-              type="password"
               name="password"
-              placeholder="••••••••"
+              type="password"
               value={form.password}
               onChange={handleChange}
               required
             />
-          </div>
-
-          <div
-            style={{
-              textAlign: "right",
-              marginBottom: 16,
-            }}
-          >
-            <Link to="/forgot-password" style={styles.link}>
-              Forgot password?
-            </Link>
           </div>
 
           <button style={styles.button} type="submit" disabled={loading}>
@@ -155,39 +155,25 @@ const styles: Record<string, React.CSSProperties> = {
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#f3f4f6",
+    background: "#f3f4f6",
   },
 
   card: {
-    backgroundColor: "#fff",
+    background: "#fff",
     padding: 40,
     borderRadius: 12,
     width: "100%",
     maxWidth: 420,
-    boxShadow: "0 4px 24px rgba(0,0,0,0.08)",
   },
 
   title: {
     fontSize: 28,
     fontWeight: 700,
     color: "#1a56db",
-    marginBottom: 4,
   },
 
   subtitle: {
-    fontSize: 18,
-    fontWeight: 500,
-    color: "#374151",
-    marginBottom: 24,
-  },
-
-  error: {
-    backgroundColor: "#fee2e2",
-    color: "#dc2626",
-    padding: "10px 14px",
-    borderRadius: 8,
-    marginBottom: 16,
-    fontSize: 14,
+    marginBottom: 20,
   },
 
   field: {
@@ -196,45 +182,39 @@ const styles: Record<string, React.CSSProperties> = {
 
   label: {
     display: "block",
-    fontSize: 14,
-    fontWeight: 500,
-    color: "#374151",
     marginBottom: 6,
   },
 
   input: {
     width: "100%",
-    padding: "10px 12px",
-    borderRadius: 8,
-    border: "1px solid #d1d5db",
-    fontSize: 14,
-    outline: "none",
-    boxSizing: "border-box",
+    padding: "10px",
+    border: "1px solid #ccc",
+    borderRadius: "8px",
   },
 
   button: {
     width: "100%",
     padding: "12px",
-    backgroundColor: "#1a56db",
-    color: "#fff",
+    background: "#1a56db",
     border: "none",
-    borderRadius: 8,
-    fontSize: 15,
-    fontWeight: 600,
-    cursor: "pointer",
+    borderRadius: "8px",
+    color: "white",
+  },
+
+  error: {
+    background: "#fee2e2",
+    padding: "10px",
+    marginBottom: "16px",
+    color: "red",
   },
 
   link: {
     color: "#1a56db",
-    textDecoration: "none",
-    fontSize: 14,
   },
 
   footer: {
+    marginTop: "20px",
     textAlign: "center",
-    marginTop: 20,
-    fontSize: 14,
-    color: "#6b7280",
   },
 };
 
