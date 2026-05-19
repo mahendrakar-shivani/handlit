@@ -32,8 +32,13 @@ app.use("/api/reviews", reviewRoutes);
 app.use("/api/notifications", notificationRoutes);
 app.use("/api/admin", adminRoutes);
 
-// ✅ Correct path: from backend/dist/ up two levels to repo root, then into frontend/dist
+// ✅ Option A path:
+// Root Directory is blank → Railway clones full repo to /app
+// __dirname = /app/backend/dist
+// ../../frontend/dist = /app/frontend/dist ✅
 const frontendPath = path.join(__dirname, "../../frontend/dist");
+
+console.log(`Looking for frontend at: ${frontendPath}`);
 
 if (fs.existsSync(frontendPath)) {
   console.log(`✅ Serving frontend from: ${frontendPath}`);
