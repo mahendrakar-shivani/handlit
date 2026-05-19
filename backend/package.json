@@ -3,14 +3,15 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
-  "dev": "nodemon src/server.ts",
-  "build": "npx prisma generate && tsc",
-  "start": "node dist/server.js",
-  "seed": "ts-node prisma/seed.ts",
-  "prisma:migrate": "npx prisma migrate dev",
-  "prisma:studio": "npx prisma studio",
-  "prisma:generate": "npx prisma generate"
-},
+    "dev": "nodemon src/server.ts",
+    "build": "npx prisma generate && tsc",
+    "start": "node dist/server.js",
+    "migrate": "npx prisma migrate deploy",
+    "seed": "ts-node prisma/seed.ts",
+    "prisma:migrate": "npx prisma migrate dev",
+    "prisma:studio": "npx prisma studio",
+    "prisma:generate": "npx prisma generate"
+  },
   "keywords": [],
   "author": "",
   "license": "ISC",
