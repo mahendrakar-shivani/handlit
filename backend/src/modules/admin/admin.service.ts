@@ -50,50 +50,65 @@ export const loginAdmin = async (
   };
 };
 
+
 // ================= DASHBOARD =================
 
 export const getDashboardStats = async () => {
 
-  const users = await prisma.user.count();
+  const totalUsers = await prisma.user.count();
 
-  const providers = await prisma.provider.count();
+  const totalProviders = await prisma.provider.count();
 
-  const bookings = await prisma.booking.count();
+  const totalBookings = await prisma.booking.count();
+
+  const bookings = await prisma.booking.findMany();
+
+  const totalRevenue = bookings.reduce(
+    (sum: number, booking: { totalAmount?: number }) =>
+      sum + (booking.totalAmount ?? 0),
+    0
+  );
 
   return {
-    users,
-    providers,
-    bookings,
+    totalUsers,
+    totalProviders,
+    totalBookings,
+    totalRevenue,
   };
 };
+
 
 // ================= USERS =================
 
 export const getAllUsers = async () => {
 
-  return prisma.user.findMany({
+  return await prisma.user.findMany({
     orderBy: {
       name: "asc",
     },
   });
+
 };
+
 
 // ================= PROVIDERS =================
 
 export const getAllProviders = async () => {
 
-  return prisma.provider.findMany({
+  return await prisma.provider.findMany({
     orderBy: {
       name: "asc",
     },
   });
+
 };
+
 
 export const verifyProvider = async (
   id: string
 ) => {
 
-  return prisma.provider.update({
+  return await prisma.provider.update({
     where: {
       id,
     },
@@ -101,7 +116,9 @@ export const verifyProvider = async (
       isVerified: true,
     },
   });
+
 };
+
 
 // ================= BAN USER =================
 
@@ -109,22 +126,25 @@ export const banUser = async (
   id: string
 ) => {
 
-  return prisma.user.delete({
+  return await prisma.user.delete({
     where: {
       id,
     },
   });
+
 };
+
 
 // ================= BOOKINGS =================
 
 export const getAllBookingsAdmin = async () => {
 
-  return prisma.booking.findMany({
+  return await prisma.booking.findMany({
     include: {
       user: true,
       provider: true,
       service: true,
     },
   });
+
 };

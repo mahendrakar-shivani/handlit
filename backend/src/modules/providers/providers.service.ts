@@ -1,21 +1,6 @@
-import bcrypt from 'bcryptjs';
-import jwt, { SignOptions } from 'jsonwebtoken';
-import prisma from '../../utils/prisma';
-
-const signToken = (id: string, role: string): string => {
-  const secret = process.env.JWT_SECRET as string;
-
-  const options: SignOptions = {
-    expiresIn: '7d'
-  };
-
-  return jwt.sign(
-    { id, role },
-    secret,
-    options
-  );
-};
-
+import prisma from "../../utils/prisma";
+import bcrypt from "bcryptjs";
+import jwt from "jsonwebtoken";
 
 // ================= REGISTER =================
 
@@ -26,39 +11,30 @@ export const registerProvider = async (
   phone?: string
 ) => {
 
-  const exists = await prisma.provider.findUnique({
-    where: { email }
-  });
+  const existingProvider =
+    await prisma.provider.findUnique({
+      where: { email }
+    });
 
-  if (exists) {
-    throw new Error('Email already registered');
+  if (existingProvider) {
+    throw new Error("Provider already exists");
   }
 
-  const hashed = await bcrypt.hash(password, 12);
+  const hashedPassword =
+    await bcrypt.hash(password, 12);
 
-  const provider = await prisma.provider.create({
-    data: {
-      name,
-      email,
-      password: hashed,
-      phone
-    }
-  });
+  const provider =
+    await prisma.provider.create({
+      data: {
+        name,
+        email,
+        password: hashedPassword,
+        phone,
+        isVerified: true
+      }
+    });
 
-  const token = signToken(
-    provider.id,
-    'PROVIDER'
-  );
-
-  return {
-    provider: {
-      id: provider.id,
-      name: provider.name,
-      email: provider.email,
-      phone: provider.phone
-    },
-    token
-  };
+  return provider;
 };
 
 
@@ -69,193 +45,68 @@ export const loginProvider = async (
   password: string
 ) => {
 
-  const provider = await prisma.provider.findUnique({
-    where: {
-      email,
-    },
-  });
+  const provider =
+    await prisma.provider.findUnique({
+      where: { email }
+    });
 
   if (!provider) {
     throw new Error("Invalid credentials");
   }
 
-  const match = await bcrypt.compare(
-    password,
-    provider.password
-  );
+  const passwordMatch =
+    await bcrypt.compare(
+      password,
+      provider.password
+    );
 
-  if (!match) {
+  if (!passwordMatch) {
     throw new Error("Invalid credentials");
   }
 
   const token = jwt.sign(
     {
       id: provider.id,
-      role: "PROVIDER",
+      role: "PROVIDER"
     },
     process.env.JWT_SECRET as string,
     {
-      expiresIn: "7d",
+      expiresIn: "7d"
     }
   );
 
   return {
-    provider: {
-      id: provider.id,
-      name: provider.name,
-      email: provider.email,
-      role: "PROVIDER",
-    },
-    token,
+    provider,
+    token
   };
 };
 
 
-// ================= GET ALL PROVIDERS =================
+// ================= GET ALL =================
 
 export const getAllProviders = async (
-  filters: any
+  query?: any
 ) => {
 
-  const {
-    search,
-    serviceId,
-    page = 1,
-    limit = 10
-  } = filters;
+  return await prisma.provider.findMany({
+    orderBy: {
+      name: "asc"
+    }
+  });
 
-  const where: any = {
-    deletedAt: null
-  };
-
-
-  // Search filter
-
-  if (search) {
-
-    where.OR = [
-
-      {
-        name: {
-          contains: search,
-          mode: 'insensitive'
-        }
-      },
-
-      {
-        email: {
-          contains: search,
-          mode: 'insensitive'
-        }
-      }
-
-    ];
-  }
-
-
-  // Service filter
-
-  if (serviceId) {
-
-    where.services = {
-      some: {
-        serviceId: serviceId
-      }
-    };
-
-  }
-
-
-  const providers =
-    await prisma.provider.findMany({
-
-      where,
-
-      skip:
-        (Number(page) - 1) *
-        Number(limit),
-
-      take:
-        Number(limit),
-
-      select: {
-
-        id: true,
-        name: true,
-        email: true,
-        phone: true,
-        bio: true,
-        rating: true,
-        isVerified: true,
-        createdAt: true,
-
-        services: {
-          include: {
-            service: true
-          }
-        }
-
-      }
-
-    });
-
-
-  const total =
-    await prisma.provider.count({
-      where
-    });
-
-  return {
-
-    providers,
-    total,
-    page: Number(page),
-    limit: Number(limit)
-
-  };
 };
 
 
-// ================= GET SINGLE PROVIDER =================
+// ================= GET ONE =================
 
 export const getProviderById = async (
   id: string
 ) => {
 
-  const provider =
-    await prisma.provider.findFirst({
+  return await prisma.provider.findUnique({
+    where: { id }
+  });
 
-      where: {
-        id,
-        deletedAt: null
-      },
-
-      select: {
-        id: true,
-        name: true,
-        email: true,
-        phone: true,
-        bio: true,
-        rating: true,
-        isVerified: true,
-        createdAt: true,
-
-        services: {
-          include: {
-            service: true
-          }
-        }
-      }
-
-    });
-
-  if (!provider) {
-    throw new Error(
-      'Provider not found'
-    );
-  }
-
-  return provider;
 };
 
 
@@ -266,145 +117,59 @@ export const updateProvider = async (
   data: any
 ) => {
 
-  const provider =
-    await prisma.provider.findFirst({
-
-      where: {
-        id,
-        deletedAt: null
-      }
-
-    });
-
-  if (!provider) {
-    throw new Error(
-      'Provider not found'
-    );
-  }
-
-  return prisma.provider.update({
-
+  return await prisma.provider.update({
     where: { id },
-
-    data,
-
-    select: {
-      id: true,
-      name: true,
-      email: true,
-      phone: true,
-      bio: true,
-      rating: true,
-      isVerified: true
-    }
-
+    data
   });
+
 };
 
 
-// ================= SOFT DELETE =================
+// ================= DELETE =================
 
 export const softDeleteProvider = async (
   id: string
 ) => {
 
-  const provider =
-    await prisma.provider.findFirst({
-
-      where: {
-        id,
-        deletedAt: null
-      }
-
-    });
-
-  if (!provider) {
-    throw new Error(
-      'Provider not found'
-    );
-  }
-
-  return prisma.provider.update({
-
-    where: { id },
-
-    data: {
-      deletedAt: new Date()
-    }
-
+  return await prisma.provider.delete({
+    where: { id }
   });
+
 };
 
 
 // ================= ADD SERVICE =================
 
 export const addServiceToProvider = async (
-
   providerId: string,
   serviceId: string,
   price: number
-
 ) => {
 
-  const existing =
-    await prisma.providerService.findUnique({
-
-      where: {
-        providerId_serviceId: {
-          providerId,
-          serviceId
-        }
-      }
-
-    });
-
-  if (existing) {
-    throw new Error(
-      'Service already added'
-    );
-  }
-
-  return prisma.providerService.create({
-
+  return await prisma.providerService.create({
     data: {
       providerId,
       serviceId,
       price
-    },
-
-    include: {
-      service: true
     }
-
   });
 
 };
 
 
-// ================= GET PROVIDER SERVICES =================
+// ================= PROVIDER SERVICES =================
 
 export const getProviderServices = async (
   providerId: string
 ) => {
 
-  return prisma.providerService.findMany({
-
+  return await prisma.providerService.findMany({
     where: {
       providerId
     },
-
     include: {
-
-      service: {
-
-        include: {
-          category: true
-        }
-
-      }
-
+      service: true
     }
-
   });
 
 };
