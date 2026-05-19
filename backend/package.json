@@ -4,13 +4,15 @@
   "main": "index.js",
   "scripts": {
     "dev": "nodemon src/server.ts",
-    "build": "npx prisma generate && tsc",
+    
     "start": "node dist/server.js",
-    "migrate": "npx prisma migrate deploy",
+    
     "seed": "ts-node prisma/seed.ts",
-    "prisma:migrate": "npx prisma migrate dev",
-    "prisma:studio": "npx prisma studio",
-    "prisma:generate": "npx prisma generate"
+    "build": "npx prisma generate --schema=./prisma/schema.prisma && tsc",
+"migrate": "npx prisma migrate deploy --schema=./prisma/schema.prisma",
+"prisma:migrate": "npx prisma migrate dev --schema=./prisma/schema.prisma",
+"prisma:studio": "npx prisma studio --schema=./prisma/schema.prisma",
+"prisma:generate": "npx prisma generate --schema=./prisma/schema.prisma"
   },
   "keywords": [],
   "author": "",
