@@ -88,11 +88,34 @@ export const getAllProviders = async (
   query?: any
 ) => {
 
-  return await prisma.provider.findMany({
-    orderBy: {
-      name: "asc"
-    }
-  });
+  const search =
+    query?.search as string | undefined;
+
+  const serviceId =
+    query?.serviceId as string | undefined;
+
+  const providers =
+    await prisma.provider.findMany({
+      where: {
+        deletedAt: null,
+        ...(search && {
+          name: {
+            contains: search,
+            mode: "insensitive"
+          }
+        }),
+        ...(serviceId && {
+          services: {
+            some: { serviceId }
+          }
+        })
+      },
+      orderBy: {
+        name: "asc"
+      }
+    });
+
+  return { providers };
 
 };
 
@@ -102,11 +125,16 @@ export const getAllProviders = async (
 export const getProviderById = async (
   id: string
 ) => {
-
   return await prisma.provider.findUnique({
-    where: { id }
+    where: { id },
+    include: {
+      services: {
+        include: {
+          service: true,
+        },
+      },
+    },
   });
-
 };
 
 

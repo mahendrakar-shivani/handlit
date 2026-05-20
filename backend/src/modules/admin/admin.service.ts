@@ -69,11 +69,35 @@ export const getDashboardStats = async () => {
     0
   );
 
+  const recentBookings = await prisma.booking.findMany({
+    take: 5,
+    orderBy: {
+      createdAt: "desc",
+    },
+    include: {
+      user: {
+        select: { name: true },
+      },
+      service: {
+        select: { name: true },
+      },
+    },
+  });
+
+  const bookingsByStatus = await prisma.booking.groupBy({
+    by: ["status"],
+    _count: {
+      status: true,
+    },
+  });
+
   return {
     totalUsers,
     totalProviders,
     totalBookings,
     totalRevenue,
+    recentBookings,
+    bookingsByStatus,
   };
 };
 
