@@ -21,24 +21,41 @@ const LoginPage = () => {
     setError('');
 
     try {
+      const roleLower = (role || '').toLowerCase();
+
       let endpoint = '/auth/login';
-      if ((role || '').toLowerCase() === 'provider') endpoint = '/providers/login';
-      else if ((role || '').toLowerCase() === 'admin') endpoint = '/auth/login';
+      if (roleLower === 'provider') endpoint = '/providers/login';
+      else if (roleLower === 'admin') endpoint = '/admin/login';
 
       const res = await api.post(endpoint, form);
-      const user = res.data.user || res.data.provider;
       const token = res.data.token;
-
       if (!token) throw new Error('No token received');
 
-      localStorage.setItem('token', token);
-      localStorage.setItem('user', JSON.stringify(user));
-      login(user, token);
+      // Each endpoint returns a different key — normalize
+      const rawUser = res.data.user ?? res.data.provider ?? res.data.admin;
 
-      if ((role || '').toLowerCase() === 'provider') {
+      // Inject role since Provider model has no role field
+      const userWithRole = {
+        ...rawUser,
+        role:
+          rawUser?.role ??
+          (roleLower === 'admin'
+            ? 'ADMIN'
+            : roleLower === 'provider'
+            ? 'PROVIDER'
+            : 'CUSTOMER'),
+      };
+
+      localStorage.setItem('token', token);
+      localStorage.setItem('user', JSON.stringify(userWithRole));
+      login(userWithRole, token);
+
+      if (roleLower === 'provider') {
         localStorage.setItem('providerToken', token);
-        localStorage.setItem('provider', JSON.stringify(user));
+        localStorage.setItem('provider', JSON.stringify(userWithRole));
         navigate('/provider/dashboard');
+      } else if (roleLower === 'admin') {
+        navigate('/admin');
       } else {
         navigate('/');
       }
