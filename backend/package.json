@@ -4,11 +4,15 @@
   "main": "index.js",
   "scripts": {
     "dev": "nodemon src/server.ts",
-    "build": "tsc",
     "start": "node dist/server.js",
-    "prisma:migrate": "npx prisma migrate dev",
-    "prisma:studio": "npx prisma studio",
-    "prisma:generate": "npx prisma generate",
+    "seed": "ts-node prisma/seed.ts",
+    "build": "npx prisma generate --schema=./prisma/schema.prisma && tsc",
+    "migrate": "npx prisma migrate deploy --schema=./prisma/schema.prisma",
+    "prisma:migrate": "npx prisma migrate dev --schema=./prisma/schema.prisma",
+    "prisma:studio": "npx prisma studio --schema=./prisma/schema.prisma",
+    "prisma:generate": "npx prisma generate --schema=./prisma/schema.prisma"
+  },
+  "prisma": {
     "seed": "ts-node prisma/seed.ts"
   },
   "keywords": [],
@@ -22,6 +26,7 @@
     "dotenv": "^17.4.1",
     "express": "^5.2.1",
     "express-validator": "^7.3.2",
+    "handlit-monorepo": "file:..",
     "jsonwebtoken": "^9.0.3",
     "nodemailer": "^8.0.5",
     "razorpay": "^2.9.6"

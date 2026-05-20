@@ -1,4 +1,8 @@
-import { createContext, useState, type ReactNode } from 'react';
+import {
+  createContext,
+  useState,
+  type ReactNode
+} from 'react';
 
 interface User {
   id: string;
@@ -24,39 +28,66 @@ const getStoredUser = (): User | null => {
   }
 };
 
-export const AuthContext = createContext<AuthContextType>({
-  user: null,
-  token: null,
-  login: () => {},
-  logout: () => {},
-  isAuthenticated: false,
-});
+export const AuthContext =
+  createContext<AuthContextType>({
+    user: null,
+    token: null,
+    login: () => {},
+    logout: () => {},
+    isAuthenticated: false,
+  });
 
-export const AuthProvider = ({ children }: { children: ReactNode }) => {
-  const [user, setUser] = useState<User | null>(getStoredUser);
-  const [token, setToken] = useState<string | null>(() => localStorage.getItem('token'));
+export const AuthProvider = (
+  { children }: { children: ReactNode }
+) => {
+
+  const [user, setUser] =
+    useState<User | null>(getStoredUser);
+
+  const [token, setToken] =
+    useState<string | null>(
+      () => localStorage.getItem('token')
+    );
 
   const login = (user: User, token: string) => {
-  const normalizedUser = { ...user, role: user.role.toLowerCase() }; // ✅ normalize once
-  setUser(normalizedUser);
-  setToken(token);
-  localStorage.setItem('token', token);
-  localStorage.setItem('user', JSON.stringify(normalizedUser));
-  localStorage.setItem('userRole', normalizedUser.role);
-};
+    // Normalize role to lowercase once here
+    const normalizedUser = {
+      ...user,
+      role: user.role.toLowerCase()
+    };
+    setUser(normalizedUser);
+    setToken(token);
+    localStorage.setItem('token', token);
+    localStorage.setItem(
+      'user',
+      JSON.stringify(normalizedUser)
+    );
+    localStorage.setItem(
+      'userRole',
+      normalizedUser.role
+    );
+  };
 
   const logout = () => {
     setUser(null);
     setToken(null);
     localStorage.removeItem('token');
     localStorage.removeItem('user');
-    localStorage.removeItem('userRole');        // ✅ ADD THIS
-    localStorage.removeItem('providerToken');   // ✅ ADD THIS
-    localStorage.removeItem('provider');        // ✅ ADD THIS
+    localStorage.removeItem('userRole');
+    localStorage.removeItem('providerToken');
+    localStorage.removeItem('provider');
   };
 
   return (
-    <AuthContext.Provider value={{ user, token, login, logout, isAuthenticated: !!token }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        token,
+        login,
+        logout,
+        isAuthenticated: !!token
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );

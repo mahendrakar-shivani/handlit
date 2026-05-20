@@ -1,92 +1,187 @@
-import { useState, useEffect } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
-import { useAuth } from '../../hooks/useAuth';
-import { getStats } from '../../services/adminService';
+import React, { useState, useEffect } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { useAuth } from "../../hooks/useAuth";
+import { getStats } from "../../services/adminService";
 
 interface Stats {
   totalUsers: number;
   totalProviders: number;
   totalBookings: number;
   totalRevenue: number;
+
   recentBookings: {
     id: string;
     status: string;
     totalAmount: number;
-    createdAt: string;
-    user: { name: string };
-    provider: { name: string };
-    service: { name: string };
+    user: {
+      name: string;
+    };
+    service: {
+      name: string;
+    };
   }[];
+
   bookingsByStatus: {
     status: string;
-    _count: { status: number };
+    _count: {
+      status: number;
+    };
   }[];
 }
 
 const AdminDashboard = () => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+
   const [stats, setStats] = useState<Stats | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    async function load() {
+    const fetchDashboard = async () => {
       try {
         const data = await getStats();
         setStats(data);
-      } catch (err) {
-        console.error('Error fetching stats:', err);
+      } catch (error) {
+        console.log("Dashboard error:", error);
       } finally {
         setLoading(false);
       }
-    }
-    load();
-  }, []); // ✅ runs once on mount, no redirect logic here
+    };
+
+    fetchDashboard();
+  }, []);
 
   const handleLogout = () => {
     logout();
-    navigate('/login');
+    navigate("/login");
   };
 
   if (loading) {
-    return <div style={styles.center}>Loading dashboard...</div>;
+    return (
+      <div style={styles.center}>
+        Loading Dashboard...
+      </div>
+    );
   }
 
   return (
     <div style={styles.page}>
       <nav style={styles.nav}>
         <h1 style={styles.logo}>Handlit Admin</h1>
+
         <div style={styles.navLinks}>
-          <Link to="/admin" style={styles.navLink}>Dashboard</Link>
-          <Link to="/admin/users" style={styles.navLink}>Users</Link>
-          <Link to="/admin/providers" style={styles.navLink}>Providers</Link>
-          <Link to="/admin/bookings" style={styles.navLink}>Bookings</Link>
+          <Link style={styles.navLink} to="/admin">
+            Dashboard
+          </Link>
+
+          <Link style={styles.navLink} to="/admin/users">
+            Users
+          </Link>
+
+          <Link style={styles.navLink} to="/admin/providers">
+            Providers
+          </Link>
+
+          <Link style={styles.navLink} to="/admin/bookings">
+            Bookings
+          </Link>
         </div>
-        <div style={styles.navRight}>
-          <span style={styles.adminName}>{user?.name}</span>
-          <button style={styles.logoutBtn} onClick={handleLogout}>
+
+        <div style={styles.right}>
+          <span>{user?.name || "Admin"}</span>
+
+          <button
+            style={styles.logoutBtn}
+            onClick={handleLogout}
+          >
             Logout
           </button>
         </div>
       </nav>
 
       <div style={styles.container}>
-        <h2 style={styles.heading}>Dashboard Overview</h2>
-        <div style={styles.statsGrid}>
-          {[
-            { label: 'Total Users',     value: stats?.totalUsers,             color: '#1a56db', emoji: '👥' },
-            { label: 'Total Providers', value: stats?.totalProviders,         color: '#057a55', emoji: '👷' },
-            { label: 'Total Bookings',  value: stats?.totalBookings,          color: '#92400e', emoji: '📋' },
-            { label: 'Total Revenue',   value: `₹${stats?.totalRevenue}`,     color: '#7e3af2', emoji: '💰' },
-          ].map((stat) => (
-            <div key={stat.label} style={styles.statCard}>
-              <span style={styles.statEmoji}>{stat.emoji}</span>
-              <div>
-                <p style={styles.statLabel}>{stat.label}</p>
-                <p style={{ ...styles.statValue, color: stat.color }}>{stat.value}</p>
-              </div>
-            </div>
-          ))}
+        <h2 style={styles.heading}>
+          Dashboard Overview
+        </h2>
+
+        <div style={styles.grid}>
+          <div style={styles.card}>
+            <h3>👥 Users</h3>
+            <h1>{stats?.totalUsers ?? 0}</h1>
+          </div>
+
+          <div style={styles.card}>
+            <h3>👷 Providers</h3>
+            <h1>{stats?.totalProviders ?? 0}</h1>
+          </div>
+
+          <div style={styles.card}>
+            <h3>📋 Bookings</h3>
+            <h1>{stats?.totalBookings ?? 0}</h1>
+          </div>
+
+          <div style={styles.card}>
+            <h3>💰 Revenue</h3>
+            <h1>₹{stats?.totalRevenue ?? 0}</h1>
+          </div>
+        </div>
+
+        <div style={styles.bottomGrid}>
+          <div style={styles.section}>
+            <h2>Recent Bookings</h2>
+
+            {stats?.recentBookings?.length ? (
+              stats.recentBookings.map((booking) => (
+                <div
+                  key={booking.id}
+                  style={styles.booking}
+                >
+                  <strong>
+                    {booking.service.name}
+                  </strong>
+
+                  <p>
+                    Customer:
+                    {" "}
+                    {booking.user.name}
+                  </p>
+
+                  <p>
+                    ₹{booking.totalAmount}
+                  </p>
+
+                  <p>
+                    {booking.status}
+                  </p>
+                </div>
+              ))
+            ) : (
+              <p>No bookings found</p>
+            )}
+          </div>
+
+          <div style={styles.section}>
+            <h2>Booking Status</h2>
+
+            {stats?.bookingsByStatus?.length ? (
+              stats.bookingsByStatus.map(
+                (item) => (
+                  <div
+                    key={item.status}
+                    style={styles.status}
+                  >
+                    <span>{item.status}</span>
+
+                    <strong>
+                      {item._count.status}
+                    </strong>
+                  </div>
+                )
+              )
+            ) : (
+              <p>No data found</p>
+            )}
+          </div>
         </div>
       </div>
     </div>
@@ -94,29 +189,101 @@ const AdminDashboard = () => {
 };
 
 const styles: Record<string, React.CSSProperties> = {
-  page: { minHeight: '100vh', backgroundColor: '#f3f4f6' },
+  page: {
+    minHeight: "100vh",
+    background: "#f3f4f6",
+  },
+
   nav: {
-    backgroundColor: '#fff', padding: '14px 32px', display: 'flex',
-    alignItems: 'center', justifyContent: 'space-between',
-    boxShadow: '0 1px 4px rgba(0,0,0,0.08)', position: 'sticky', top: 0, zIndex: 100,
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    padding: "15px 30px",
+    background: "white",
+    boxShadow: "0 1px 5px rgba(0,0,0,.1)",
   },
-  logo:      { fontSize: 20, fontWeight: 700, color: '#1a56db', margin: 0 },
-  navLinks:  { display: 'flex', gap: 24 },
-  navLink:   { fontSize: 14, color: '#374151', textDecoration: 'none', fontWeight: 500 },
-  navRight:  { display: 'flex', alignItems: 'center', gap: 16 },
-  adminName: { fontSize: 14, color: '#374151', fontWeight: 500 },
+
+  logo: {
+    color: "#2563eb",
+    fontWeight: "bold",
+    fontSize: "24px",
+  },
+
+  navLinks: {
+    display: "flex",
+    gap: "20px",
+  },
+
+  navLink: {
+    textDecoration: "none",
+    color: "#374151",
+  },
+
+  right: {
+    display: "flex",
+    alignItems: "center",
+    gap: "15px",
+  },
+
   logoutBtn: {
-    padding: '7px 16px', backgroundColor: '#ef4444', color: '#fff',
-    border: 'none', borderRadius: 8, cursor: 'pointer',
+    background: "#ef4444",
+    color: "white",
+    border: "none",
+    padding: "8px 15px",
+    borderRadius: "8px",
+    cursor: "pointer",
   },
-  container: { maxWidth: 1100, margin: '0 auto', padding: '32px 24px' },
-  heading:   { fontSize: 26, fontWeight: 700, color: '#111827' },
-  statsGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(220px,1fr))', gap: 20 },
-  statCard:  { backgroundColor: '#fff', borderRadius: 12, padding: 24, display: 'flex', gap: 16 },
-  statEmoji: { fontSize: 36 },
-  statLabel: { fontSize: 13 },
-  statValue: { fontSize: 28, fontWeight: 700 },
-  center:    { textAlign: 'center', padding: 60, color: '#6b7280' },
+
+  container: {
+    padding: "30px",
+  },
+
+  heading: {
+    marginBottom: "25px",
+  },
+
+  grid: {
+    display: "grid",
+    gridTemplateColumns: "repeat(auto-fit,minmax(220px,1fr))",
+    gap: "20px",
+  },
+
+  card: {
+    background: "white",
+    padding: "25px",
+    borderRadius: "12px",
+    textAlign: "center",
+  },
+
+  bottomGrid: {
+    display: "grid",
+    gridTemplateColumns: "1fr 1fr",
+    gap: "20px",
+    marginTop: "30px",
+  },
+
+  section: {
+    background: "white",
+    padding: "20px",
+    borderRadius: "12px",
+  },
+
+  booking: {
+    borderBottom: "1px solid #eee",
+    padding: "10px",
+  },
+
+  status: {
+    display: "flex",
+    justifyContent: "space-between",
+    padding: "10px",
+    borderBottom: "1px solid #eee",
+  },
+
+  center: {
+    padding: "60px",
+    textAlign: "center",
+  },
 };
 
 export default AdminDashboard;

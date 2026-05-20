@@ -5,7 +5,6 @@ import ForgotPasswordPage   from '../pages/auth/ForgotPasswordPage';
 import HomePage             from '../pages/home/HomePage';
 import ServicesPage         from '../pages/services/ServicesPage';
 import ProvidersPage        from '../pages/providers/ProvidersPage';
-import ProviderDetailPage   from '../pages/providers/ProviderDetailPage';
 import BookingPage          from '../pages/bookings/BookingPage';
 import MyBookingsPage       from '../pages/bookings/MyBookingsPage';
 import NotificationsPage    from '../pages/notifications/NotificationsPage';
@@ -18,6 +17,8 @@ import AdminUsers           from '../pages/admin/AdminUsers';
 import AdminProviders       from '../pages/admin/AdminProviders';
 import AdminBookings        from '../pages/admin/AdminBookings';
 import { CustomerRoute, ProviderRoute, AdminRoute } from '../components/ProtectedRoute';
+import ProviderProfilePage from '../pages/providers/ProviderProfilePage';
+
 
 function App() {
   return (
@@ -34,7 +35,7 @@ function App() {
         <Route path="/"              element={<CustomerRoute><HomePage /></CustomerRoute>} />
         <Route path="/services"      element={<CustomerRoute><ServicesPage /></CustomerRoute>} />
         <Route path="/providers"     element={<CustomerRoute><ProvidersPage /></CustomerRoute>} />
-        <Route path="/providers/:id" element={<CustomerRoute><ProviderDetailPage /></CustomerRoute>} />
+        <Route path="/providers/:id" element={<CustomerRoute><ProviderProfilePage /></CustomerRoute>} />
         <Route path="/book"          element={<CustomerRoute><BookingPage /></CustomerRoute>} />
         <Route path="/my-bookings"   element={<CustomerRoute><MyBookingsPage /></CustomerRoute>} />
         <Route path="/notifications" element={<CustomerRoute><NotificationsPage /></CustomerRoute>} />
