@@ -12,8 +12,24 @@ interface Booking {
   user: { name: string; email: string };
 }
 
+interface ServiceOption {
+  id: string;
+  name: string;
+  basePrice: number;
+}
+
+interface MyProvider {
+  id: string;
+  isVerified: boolean;
+  services: {
+    id: string;
+    price: number;
+    service: { id: string; name: string };
+  }[];
+}
+
 const statusColors: Record<string, { bg: string; color: string }> = {
-  PENDING: { bg: "#d1c7fe", color: "#92400e" },
+  PENDING: { bg: "#fef3c7", color: "#92400e" },
   CONFIRMED: { bg: "#d1fae5", color: "#065f46" },
   IN_PROGRESS: { bg: "#dbeafe", color: "#1e40af" },
   COMPLETED: { bg: "#f0fdf4", color: "#166534" },
@@ -27,6 +43,75 @@ const ProviderDashboard = () => {
   const [filter, setFilter] = useState("");
 
   const provider = JSON.parse(localStorage.getItem("provider") || "{}");
+
+  const [me, setMe] = useState<MyProvider | null>(null);
+  const [allServices, setAllServices] = useState<ServiceOption[]>([]);
+  const [serviceId, setServiceId] = useState("");
+  const [price, setPrice] = useState("");
+  const [svcMsg, setSvcMsg] = useState("");
+
+  const loadProfile = async () => {
+    try {
+      const res = await api.get(`/providers/${provider.id}`);
+      setMe(res.data);
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
+  const loadAllServices = async () => {
+    try {
+      const res = await api.get("/services", { params: { limit: 100 } });
+      setAllServices(res.data.services || []);
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
+  useEffect(() => {
+    const token = localStorage.getItem("providerToken");
+    if (!token || !provider.id) return;
+    api.defaults.headers.common["Authorization"] = `Bearer ${token}`;
+
+    async function loadAll() {
+      await Promise.all([loadProfile(), loadAllServices()]);
+    }
+    loadAll();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const handleSaveService = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSvcMsg("");
+    const amount = Number(price);
+    if (!serviceId || !(amount > 0)) {
+      setSvcMsg("Choose a service and enter a price above 0");
+      return;
+    }
+    try {
+      await api.post(`/providers/${provider.id}/services`, {
+        serviceId,
+        price: amount,
+      });
+      setServiceId("");
+      setPrice("");
+      setSvcMsg("Service saved");
+      loadProfile();
+    } catch (err: unknown) {
+      const error = err as { response?: { data?: { message?: string } } };
+      setSvcMsg(error.response?.data?.message || "Could not save service");
+    }
+  };
+
+  const handleRemoveService = async (sid: string) => {
+    if (!confirm("Remove this service?")) return;
+    try {
+      await api.delete(`/providers/${provider.id}/services/${sid}`);
+      loadProfile();
+    } catch {
+      alert("Could not remove service");
+    }
+  };
 
   const loadBookings = async (status: string) => {
     try {
@@ -84,7 +169,70 @@ const ProviderDashboard = () => {
       </nav>
 
       <div style={styles.container}>
-        <h2 style={styles.heading}>Booking Requests</h2>
+        {me && !me.isVerified && (
+          <div style={styles.notice}>
+            ⏳ Your account is waiting for admin approval. Customers can see and
+            book you only after you are verified.
+          </div>
+        )}
+
+        <h2 style={styles.heading}>My Services</h2>
+        <div style={styles.panel}>
+          {me && me.services.length > 0 ? (
+            <ul style={styles.svcList}>
+              {me.services.map((ps) => (
+                <li key={ps.id} style={styles.svcItem}>
+                  <span style={styles.svcName}>{ps.service.name}</span>
+                  <span style={styles.svcPrice}>₹{ps.price}</span>
+                  <button
+                    style={styles.removeBtn}
+                    onClick={() => handleRemoveService(ps.service.id)}
+                  >
+                    Remove
+                  </button>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p style={styles.muted}>
+              You have not added any services yet. Add one below so customers
+              can book you.
+            </p>
+          )}
+
+          <form style={styles.svcForm} onSubmit={handleSaveService}>
+            <select
+              style={styles.select}
+              value={serviceId}
+              onChange={(e) => {
+                setServiceId(e.target.value);
+                const picked = allServices.find((s) => s.id === e.target.value);
+                if (picked && !price) setPrice(String(picked.basePrice));
+              }}
+            >
+              <option value="">Select a service</option>
+              {allServices.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.name} (base ₹{s.basePrice})
+                </option>
+              ))}
+            </select>
+            <input
+              style={styles.priceInput}
+              type="number"
+              min="1"
+              placeholder="Your price (₹)"
+              value={price}
+              onChange={(e) => setPrice(e.target.value)}
+            />
+            <button style={styles.saveBtn} type="submit">
+              Add / Update
+            </button>
+          </form>
+          {svcMsg && <p style={styles.muted}>{svcMsg}</p>}
+        </div>
+
+        <h2 style={{ ...styles.heading, marginTop: 36 }}>Booking Requests</h2>
 
         <div style={styles.filters}>
           {[
@@ -183,7 +331,7 @@ const ProviderDashboard = () => {
 const styles: Record<string, React.CSSProperties> = {
   page: { minHeight: "100vh", background: "#f3f4f6" },
   nav: {
-    background: "#ffffff",
+    background: "#fff",
     padding: "14px 32px",
     display: "flex",
     justifyContent: "space-between",
@@ -207,19 +355,17 @@ const styles: Record<string, React.CSSProperties> = {
     padding: "7px 16px",
     borderRadius: 20,
     border: "1px solid #d1d5db",
-    background: "#ffffff",
-    color: "#374151",
+    background: "#fff",
     cursor: "pointer",
-    fontWeight: 500,
   },
   activeFilter: {
     background: "#1a56db",
-    color: "#ffffff",
+    color: "#fff",
     border: "1px solid #1a56db",
   },
   list: { display: "flex", flexDirection: "column", gap: 16 },
   card: {
-    background: "#ffffff",
+    background: "#fff",
     padding: 24,
     borderRadius: 12,
     boxShadow: "0 2px 8px rgba(0,0,0,0.06)",
@@ -273,6 +419,76 @@ const styles: Record<string, React.CSSProperties> = {
     fontWeight: 600,
   },
   center: { textAlign: "center", padding: 60, color: "#6b7280" },
+  notice: {
+    background: "#fef3c7",
+    color: "#92400e",
+    border: "1px solid #fcd34d",
+    borderRadius: 10,
+    padding: "12px 16px",
+    marginBottom: 20,
+    fontSize: 14,
+  },
+  panel: {
+    background: "#fff",
+    padding: 24,
+    borderRadius: 12,
+    boxShadow: "0 2px 8px rgba(0,0,0,0.06)",
+  },
+  svcList: {
+    listStyle: "none",
+    margin: "0 0 16px 0",
+    padding: 0,
+    display: "flex",
+    flexDirection: "column",
+    gap: 8,
+  },
+  svcItem: {
+    display: "flex",
+    alignItems: "center",
+    gap: 12,
+    padding: "8px 0",
+    borderBottom: "1px solid #f3f4f6",
+  },
+  svcName: { flex: 1, fontSize: 15, fontWeight: 600, color: "#111827" },
+  svcPrice: { fontSize: 15, color: "#065f46", fontWeight: 600 },
+  removeBtn: {
+    padding: "5px 14px",
+    background: "#fee2e2",
+    color: "#991b1b",
+    border: "1px solid #fca5a5",
+    borderRadius: 6,
+    fontSize: 12,
+    fontWeight: 600,
+    cursor: "pointer",
+  },
+  muted: { color: "#6b7280", fontSize: 14, margin: "8px 0" },
+  svcForm: { display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" },
+  select: {
+    flex: 1,
+    minWidth: 200,
+    padding: "9px 12px",
+    borderRadius: 8,
+    border: "1px solid #d1d5db",
+    background: "#fff",
+    color: "#111827",
+  },
+  priceInput: {
+    width: 150,
+    padding: "9px 12px",
+    borderRadius: 8,
+    border: "1px solid #d1d5db",
+    background: "#fff",
+    color: "#111827",
+  },
+  saveBtn: {
+    padding: "9px 20px",
+    background: "#1a56db",
+    color: "#fff",
+    border: "none",
+    borderRadius: 8,
+    fontWeight: 600,
+    cursor: "pointer",
+  },
 };
 
 export default ProviderDashboard;

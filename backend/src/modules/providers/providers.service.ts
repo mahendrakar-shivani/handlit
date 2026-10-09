@@ -30,11 +30,27 @@ export const registerProvider = async (
         email,
         password: hashedPassword,
         phone,
-        isVerified: true
+        isVerified: false
       }
     });
 
-  return provider;
+  const token = jwt.sign(
+    {
+      id: provider.id,
+      role: "PROVIDER"
+    },
+    process.env.JWT_SECRET as string,
+    {
+      expiresIn: "7d"
+    }
+  );
+
+  const { password: _password, ...safeProvider } = provider;
+
+  return {
+    provider: safeProvider,
+    token
+  };
 };
 
 
@@ -50,7 +66,7 @@ export const loginProvider = async (
       where: { email }
     });
 
-  if (!provider) {
+  if (!provider || provider.deletedAt) {
     throw new Error("Invalid credentials");
   }
 
@@ -75,8 +91,10 @@ export const loginProvider = async (
     }
   );
 
+  const { password: _password, ...safeProvider } = provider;
+
   return {
-    provider,
+    provider: safeProvider,
     token
   };
 };
@@ -96,8 +114,10 @@ export const getAllProviders = async (
 
   const providers =
     await prisma.provider.findMany({
+      omit: { password: true },
       where: {
         deletedAt: null,
+        isVerified: true,
         ...(search && {
           name: {
             contains: search,
@@ -127,6 +147,7 @@ export const getProviderById = async (
 ) => {
   return await prisma.provider.findUnique({
     where: { id },
+    omit: { password: true },
     include: {
       services: {
         include: {
@@ -145,9 +166,18 @@ export const updateProvider = async (
   data: any
 ) => {
 
+  const allowed: Record<string, unknown> = {};
+
+  for (const key of ["name", "phone", "bio"]) {
+    if (data && data[key] !== undefined) {
+      allowed[key] = data[key];
+    }
+  }
+
   return await prisma.provider.update({
     where: { id },
-    data
+    data: allowed,
+    omit: { password: true }
   });
 
 };
@@ -174,11 +204,35 @@ export const addServiceToProvider = async (
   price: number
 ) => {
 
-  return await prisma.providerService.create({
-    data: {
-      providerId,
-      serviceId,
-      price
+  const service = await prisma.service.findFirst({
+    where: { id: serviceId, deletedAt: null }
+  });
+
+  if (!service) {
+    throw new Error("Service not found");
+  }
+
+  return await prisma.providerService.upsert({
+    where: {
+      providerId_serviceId: { providerId, serviceId }
+    },
+    update: { price },
+    create: { providerId, serviceId, price }
+  });
+
+};
+
+
+// ================= REMOVE SERVICE =================
+
+export const removeServiceFromProvider = async (
+  providerId: string,
+  serviceId: string
+) => {
+
+  return await prisma.providerService.delete({
+    where: {
+      providerId_serviceId: { providerId, serviceId }
     }
   });
 

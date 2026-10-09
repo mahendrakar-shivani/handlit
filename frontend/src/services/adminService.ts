@@ -20,6 +20,11 @@ export const verifyProvider = async (id: string) => {
   return res.data;
 };
 
+export const removeProvider = async (id: string) => {
+  const res = await api.delete(`/admin/providers/${id}`);
+  return res.data;
+};
+
 export const banUser = async (id: string) => {
   const res = await api.patch(`/admin/users/${id}/ban`);
   return res.data;

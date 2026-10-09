@@ -5,6 +5,14 @@ export const createBooking = async (data: any) => {
   const { userId, providerId, serviceId, scheduledAt, address, totalAmount } =
     data;
 
+  const provider = await prisma.provider.findUnique({
+    where: { id: providerId },
+  });
+
+  if (!provider || provider.deletedAt || !provider.isVerified) {
+    throw new Error("This provider is not available for booking");
+  }
+
   const booking = await prisma.booking.create({
     data: { userId, providerId, serviceId, scheduledAt, address, totalAmount },
     include: { user: true, provider: true, service: true },

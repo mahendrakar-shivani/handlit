@@ -41,7 +41,9 @@ export const getUsers = async (req: Request, res: Response) => {
 
 export const getProviders = async (req: Request, res: Response) => {
   try {
-    const result = await adminService.getAllProviders();
+    const page = Math.max(Number(req.query["page"]) || 1, 1);
+
+    const result = await adminService.getAllProviders(page);
 
     res.status(200).json(result);
   } catch (err: any) {
@@ -54,6 +56,20 @@ export const getProviders = async (req: Request, res: Response) => {
 export const verifyProvider = async (req: Request, res: Response) => {
   try {
     const result = await adminService.verifyProvider(
+      req.params["id"] as string,
+    );
+
+    res.status(200).json(result);
+  } catch (err: any) {
+    res.status(400).json({
+      message: err.message,
+    });
+  }
+};
+
+export const removeProvider = async (req: Request, res: Response) => {
+  try {
+    const result = await adminService.removeProvider(
       req.params["id"] as string,
     );
 

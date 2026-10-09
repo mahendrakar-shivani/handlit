@@ -107,6 +107,11 @@ export const getDashboardStats = async () => {
 export const getAllUsers = async () => {
 
   return await prisma.user.findMany({
+    omit: {
+      password: true,
+      resetToken: true,
+      resetExpiry: true,
+    },
     orderBy: {
       name: "asc",
     },
@@ -117,12 +122,43 @@ export const getAllUsers = async () => {
 
 // ================= PROVIDERS =================
 
-export const getAllProviders = async () => {
+export const getAllProviders = async (
+  page = 1,
+  limit = 10
+) => {
 
-  return await prisma.provider.findMany({
-    orderBy: {
-      name: "asc",
+  const where = { deletedAt: null };
+
+  const providers = await prisma.provider.findMany({
+    where,
+    omit: { password: true },
+    orderBy: [
+      { isVerified: "asc" },
+      { createdAt: "desc" },
+    ],
+    skip: (page - 1) * limit,
+    take: limit,
+  });
+
+  const total = await prisma.provider.count({ where });
+
+  return { providers, total, page, limit };
+
+};
+
+
+export const removeProvider = async (
+  id: string
+) => {
+
+  return await prisma.provider.update({
+    where: {
+      id,
     },
+    data: {
+      deletedAt: new Date(),
+    },
+    omit: { password: true },
   });
 
 };
@@ -139,6 +175,7 @@ export const verifyProvider = async (
     data: {
       isVerified: true,
     },
+    omit: { password: true },
   });
 
 };

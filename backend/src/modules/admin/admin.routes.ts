@@ -18,6 +18,8 @@ router.get("/providers", adminController.getProviders);
 
 router.patch("/providers/:id/verify", adminController.verifyProvider);
 
+router.delete("/providers/:id", adminController.removeProvider);
+
 router.patch("/users/:id/ban", adminController.banUser);
 
 router.get("/bookings", adminController.getBookings);

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { getAdminProviders, verifyProvider } from '../../services/adminService';
+import { getAdminProviders, verifyProvider, removeProvider } from '../../services/adminService';
 
 interface Provider {
   id: string; name: string; email: string;
@@ -37,6 +37,16 @@ const AdminProviders = () => {
       setRefresh(r => r + 1);
     } catch {
       alert('Could not verify provider');
+    }
+  };
+
+  const handleRemove = async (id: string, name: string) => {
+    if (!confirm(`Remove provider ${name}? They will no longer be able to log in or be booked.`)) return;
+    try {
+      await removeProvider(id);
+      setRefresh(r => r + 1);
+    } catch {
+      alert('Could not remove provider');
     }
   };
 
@@ -85,11 +95,16 @@ const AdminProviders = () => {
                     </td>
                     <td style={styles.td}>{new Date(provider.createdAt).toLocaleDateString()}</td>
                     <td style={styles.td}>
-                      {!provider.isVerified && (
-                        <button style={styles.verifyBtn} onClick={() => handleVerify(provider.id, provider.name)}>
-                          Verify
+                      <div style={styles.actions}>
+                        {!provider.isVerified && (
+                          <button style={styles.verifyBtn} onClick={() => handleVerify(provider.id, provider.name)}>
+                            Verify
+                          </button>
+                        )}
+                        <button style={styles.removeBtn} onClick={() => handleRemove(provider.id, provider.name)}>
+                          Remove
                         </button>
-                      )}
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -101,7 +116,7 @@ const AdminProviders = () => {
         <div style={styles.pagination}>
           <button style={styles.pageBtn} disabled={page === 1} onClick={() => setPage(page - 1)}>← Prev</button>
           <span style={styles.pageInfo}>Page {page}</span>
-          <button style={styles.pageBtn} disabled={providers.length < 10} onClick={() => setPage(page + 1)}>Next →</button>
+          <button style={styles.pageBtn} disabled={page * 10 >= total} onClick={() => setPage(page + 1)}>Next →</button>
         </div>
       </div>
     </div>
@@ -135,8 +150,14 @@ const styles: Record<string, React.CSSProperties> = {
     padding: '5px 14px', backgroundColor: '#d1fae5', color: '#065f46',
     border: '1px solid #6ee7b7', borderRadius: 6, fontSize: 12, fontWeight: 600, cursor: 'pointer',
   },
+  actions: { display: 'flex', gap: 8 },
+  removeBtn: {
+    padding: '5px 14px', backgroundColor: '#fee2e2', color: '#991b1b',
+    border: '1px solid #fca5a5', borderRadius: 6, fontSize: 12, fontWeight: 600, cursor: 'pointer',
+  },
   pagination: { display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 16, marginTop: 24 },
   pageBtn: {
+    color: '#374151',
     padding: '8px 20px', backgroundColor: '#fff', border: '1px solid #d1d5db',
     borderRadius: 8, fontSize: 14, cursor: 'pointer', fontWeight: 500,
   },

@@ -116,6 +116,16 @@ export const updateProvider = async (
   res: Response
 ): Promise<void> => {
   try {
+    const user = (req as any).user;
+
+    if (user?.id !== req.params.id && user?.role !== "ADMIN") {
+      res.status(403).json({
+        message: "You can only edit your own profile",
+      });
+
+      return;
+    }
+
     const provider =
       await providersService.updateProvider(
         req.params.id as string,
@@ -162,15 +172,27 @@ export const addService = async (
   res: Response
 ): Promise<void> => {
   try {
-    const { serviceId, price } = req.body;
+    const { serviceId } = req.body;
+
+    const price = Number(req.body.price);
 
     const providerId =
       req.params.id as string;
 
-    if (!serviceId || !price) {
+    const user = (req as any).user;
+
+    if (user?.id !== providerId && user?.role !== "ADMIN") {
+      res.status(403).json({
+        message: "You can only edit your own services",
+      });
+
+      return;
+    }
+
+    if (!serviceId || !(price > 0)) {
       res.status(400).json({
         message:
-          "ServiceId and price are required",
+          "ServiceId and a price above 0 are required",
       });
 
       return;
@@ -184,6 +206,46 @@ export const addService = async (
       );
 
     res.status(201).json(result);
+  } catch (err: unknown) {
+    const error = err as Error;
+
+    res.status(400).json({
+      message: error.message,
+    });
+  }
+};
+
+// ================= REMOVE SERVICE =================
+
+export const removeService = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
+  try {
+    const providerId =
+      req.params.id as string;
+
+    const serviceId =
+      req.params.serviceId as string;
+
+    const user = (req as any).user;
+
+    if (user?.id !== providerId && user?.role !== "ADMIN") {
+      res.status(403).json({
+        message: "You can only edit your own services",
+      });
+
+      return;
+    }
+
+    await providersService.removeServiceFromProvider(
+      providerId,
+      serviceId
+    );
+
+    res.status(200).json({
+      message: "Service removed",
+    });
   } catch (err: unknown) {
     const error = err as Error;
 

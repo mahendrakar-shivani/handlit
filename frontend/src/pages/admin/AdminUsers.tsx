@@ -136,6 +136,7 @@ const styles: Record<string, React.CSSProperties> = {
   },
   pagination: { display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 16, marginTop: 24 },
   pageBtn: {
+    color: '#374151',
     padding: '8px 20px', backgroundColor: '#fff', border: '1px solid #d1d5db',
     borderRadius: 8, fontSize: 14, cursor: 'pointer', fontWeight: 500,
   },

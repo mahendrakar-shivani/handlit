@@ -44,6 +44,12 @@ router.post(
   providersController.addService
 );
 
+router.delete(
+  '/:id/services/:serviceId',
+  protect,
+  providersController.removeService
+);
+
 
 // Admin only
 router.delete(
