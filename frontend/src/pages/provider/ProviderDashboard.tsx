@@ -38,6 +38,7 @@ const statusColors: Record<string, { bg: string; color: string }> = {
 
 const ProviderDashboard = () => {
   const navigate = useNavigate();
+
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(false);
   const [filter, setFilter] = useState("");
@@ -61,7 +62,9 @@ const ProviderDashboard = () => {
 
   const loadAllServices = async () => {
     try {
-      const res = await api.get("/services", { params: { limit: 100 } });
+      const res = await api.get("/services", {
+        params: { limit: 100 },
+      });
       setAllServices(res.data.services || []);
     } catch (error) {
       console.error(error);
@@ -70,44 +73,60 @@ const ProviderDashboard = () => {
 
   useEffect(() => {
     const token = localStorage.getItem("providerToken");
+
     if (!token || !provider.id) return;
+
     api.defaults.headers.common["Authorization"] = `Bearer ${token}`;
 
     async function loadAll() {
       await Promise.all([loadProfile(), loadAllServices()]);
     }
+
     loadAll();
+
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleSaveService = async (e: React.FormEvent) => {
     e.preventDefault();
     setSvcMsg("");
+
     const amount = Number(price);
+
     if (!serviceId || !(amount > 0)) {
       setSvcMsg("Choose a service and enter a price above 0");
       return;
     }
+
     try {
       await api.post(`/providers/${provider.id}/services`, {
         serviceId,
         price: amount,
       });
+
       setServiceId("");
       setPrice("");
       setSvcMsg("Service saved");
-      loadProfile();
+
+      await loadProfile();
     } catch (err: unknown) {
-      const error = err as { response?: { data?: { message?: string } } };
+      const error = err as {
+        response?: {
+          data?: { message?: string };
+        };
+      };
+
       setSvcMsg(error.response?.data?.message || "Could not save service");
     }
   };
 
   const handleRemoveService = async (sid: string) => {
     if (!confirm("Remove this service?")) return;
+
     try {
       await api.delete(`/providers/${provider.id}/services/${sid}`);
-      loadProfile();
+
+      await loadProfile();
     } catch {
       alert("Could not remove service");
     }
@@ -116,9 +135,13 @@ const ProviderDashboard = () => {
   const loadBookings = async (status: string) => {
     try {
       setLoading(true);
+
       const res = await api.get("/bookings", {
-        params: { status: status || undefined },
+        params: {
+          status: status || undefined,
+        },
       });
+
       setBookings(res.data.bookings || []);
     } catch (error) {
       console.error(error);
@@ -129,22 +152,27 @@ const ProviderDashboard = () => {
 
   useEffect(() => {
     const token = localStorage.getItem("providerToken");
+
     if (!token) {
       navigate("/provider/login");
       return;
     }
+
     api.defaults.headers.common["Authorization"] = `Bearer ${token}`;
 
     async function load() {
       await loadBookings(filter);
     }
+
     load();
+
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filter, navigate]);
 
   const updateStatus = async (id: string, action: string) => {
     try {
       await api.patch(`/bookings/${id}/${action}`);
-      loadBookings(filter);
+      await loadBookings(filter);
     } catch {
       alert("Could not update booking status");
     }
@@ -160,8 +188,10 @@ const ProviderDashboard = () => {
     <div style={styles.page}>
       <nav style={styles.nav}>
         <h1 style={styles.logo}>Handlit Provider</h1>
+
         <div style={styles.navRight}>
           <span style={styles.providerName}>{provider.name}</span>
+
           <button style={styles.logoutBtn} onClick={handleLogout}>
             Logout
           </button>
@@ -177,13 +207,16 @@ const ProviderDashboard = () => {
         )}
 
         <h2 style={styles.heading}>My Services</h2>
+
         <div style={styles.panel}>
           {me && me.services.length > 0 ? (
             <ul style={styles.svcList}>
               {me.services.map((ps) => (
                 <li key={ps.id} style={styles.svcItem}>
                   <span style={styles.svcName}>{ps.service.name}</span>
+
                   <span style={styles.svcPrice}>₹{ps.price}</span>
+
                   <button
                     style={styles.removeBtn}
                     onClick={() => handleRemoveService(ps.service.id)}
@@ -206,17 +239,23 @@ const ProviderDashboard = () => {
               value={serviceId}
               onChange={(e) => {
                 setServiceId(e.target.value);
+
                 const picked = allServices.find((s) => s.id === e.target.value);
-                if (picked && !price) setPrice(String(picked.basePrice));
+
+                if (picked && !price) {
+                  setPrice(String(picked.basePrice));
+                }
               }}
             >
               <option value="">Select a service</option>
+
               {allServices.map((s) => (
                 <option key={s.id} value={s.id}>
                   {s.name} (base ₹{s.basePrice})
                 </option>
               ))}
             </select>
+
             <input
               style={styles.priceInput}
               type="number"
@@ -225,14 +264,23 @@ const ProviderDashboard = () => {
               value={price}
               onChange={(e) => setPrice(e.target.value)}
             />
+
             <button style={styles.saveBtn} type="submit">
               Add / Update
             </button>
           </form>
+
           {svcMsg && <p style={styles.muted}>{svcMsg}</p>}
         </div>
 
-        <h2 style={{ ...styles.heading, marginTop: 36 }}>Booking Requests</h2>
+        <h2
+          style={{
+            ...styles.heading,
+            marginTop: 36,
+          }}
+        >
+          Booking Requests
+        </h2>
 
         <div style={styles.filters}>
           {[
@@ -244,7 +292,8 @@ const ProviderDashboard = () => {
             "CANCELLED",
           ].map((s) => (
             <button
-              key={s}
+              key={s || "ALL"}
+              type="button"
               style={{
                 ...styles.filterBtn,
                 ...(filter === s ? styles.activeFilter : {}),
@@ -264,15 +313,18 @@ const ProviderDashboard = () => {
           <div style={styles.list}>
             {bookings.map((booking) => {
               const sc = statusColors[booking.status] || statusColors.PENDING;
+
               return (
                 <div key={booking.id} style={styles.card}>
                   <div style={styles.cardTop}>
                     <div>
                       <h3 style={styles.serviceName}>{booking.service.name}</h3>
+
                       <p style={styles.customerName}>
                         👤 {booking.user.name} - {booking.user.email}
                       </p>
                     </div>
+
                     <span
                       style={{
                         ...styles.badge,
@@ -288,7 +340,9 @@ const ProviderDashboard = () => {
                     <span>
                       📅 {new Date(booking.scheduledAt).toLocaleString()}
                     </span>
+
                     <span>📍 {booking.address}</span>
+
                     <span>💰 ₹{booking.totalAmount}</span>
                   </div>
 
@@ -301,6 +355,7 @@ const ProviderDashboard = () => {
                         ✅ Confirm
                       </button>
                     )}
+
                     {booking.status === "CONFIRMED" && (
                       <button
                         style={styles.inProgressBtn}
@@ -309,6 +364,7 @@ const ProviderDashboard = () => {
                         🔄 Mark In Progress
                       </button>
                     )}
+
                     {booking.status === "IN_PROGRESS" && (
                       <button
                         style={styles.completeBtn}
@@ -329,7 +385,11 @@ const ProviderDashboard = () => {
 };
 
 const styles: Record<string, React.CSSProperties> = {
-  page: { minHeight: "100vh", background: "#f3f4f6" },
+  page: {
+    minHeight: "100vh",
+    background: "#f3f4f6",
+  },
+
   nav: {
     background: "#fff",
     padding: "14px 32px",
@@ -337,9 +397,24 @@ const styles: Record<string, React.CSSProperties> = {
     justifyContent: "space-between",
     alignItems: "center",
   },
-  logo: { fontSize: 20, fontWeight: 700, color: "#1a56db" },
-  navRight: { display: "flex", gap: 16, alignItems: "center" },
-  providerName: { fontSize: 14 },
+
+  logo: {
+    fontSize: 20,
+    fontWeight: 700,
+    color: "#1a56db",
+  },
+
+  navRight: {
+    display: "flex",
+    gap: 16,
+    alignItems: "center",
+  },
+
+  providerName: {
+    fontSize: 14,
+    color: "#111827",
+  },
+
   logoutBtn: {
     padding: "7px 16px",
     background: "#ef4444",
@@ -348,41 +423,91 @@ const styles: Record<string, React.CSSProperties> = {
     color: "#fff",
     cursor: "pointer",
   },
-  container: { maxWidth: 900, margin: "0 auto", padding: "32px" },
-  heading: { fontSize: 26, fontWeight: 700, marginBottom: 20 },
-  filters: { display: "flex", gap: 8, marginBottom: 20, flexWrap: "wrap" },
+
+  container: {
+    maxWidth: 900,
+    margin: "0 auto",
+    padding: "32px",
+  },
+
+  heading: {
+    fontSize: 26,
+    fontWeight: 700,
+    marginBottom: 20,
+    color: "#111827",
+  },
+
+  filters: {
+    display: "flex",
+    gap: 8,
+    marginBottom: 20,
+    flexWrap: "wrap",
+  },
+
+  // FIX: Explicitly set dark text for unselected buttons.
   filterBtn: {
     padding: "7px 16px",
     borderRadius: 20,
     border: "1px solid #d1d5db",
     background: "#fff",
+    color: "#374151",
     cursor: "pointer",
+    fontSize: 14,
+    fontWeight: 500,
+    whiteSpace: "nowrap",
+    appearance: "none",
+    WebkitAppearance: "none",
   },
+
+  // Selected filter has a blue background and white text.
   activeFilter: {
     background: "#1a56db",
     color: "#fff",
     border: "1px solid #1a56db",
   },
-  list: { display: "flex", flexDirection: "column", gap: 16 },
+
+  list: {
+    display: "flex",
+    flexDirection: "column",
+    gap: 16,
+  },
+
   card: {
     background: "#fff",
     padding: 24,
     borderRadius: 12,
     boxShadow: "0 2px 8px rgba(0,0,0,0.06)",
   },
+
   cardTop: {
     display: "flex",
     justifyContent: "space-between",
     marginBottom: 12,
+    gap: 12,
   },
-  serviceName: { fontSize: 18, fontWeight: 600, margin: "0 0 4px 0" },
-  customerName: { color: "#6b7280", fontSize: 14, margin: 0 },
+
+  serviceName: {
+    fontSize: 18,
+    fontWeight: 600,
+    margin: "0 0 4px 0",
+    color: "#111827",
+  },
+
+  customerName: {
+    color: "#6b7280",
+    fontSize: 14,
+    margin: 0,
+  },
+
   badge: {
     padding: "4px 12px",
     borderRadius: 20,
     fontSize: 12,
     fontWeight: 600,
+    whiteSpace: "nowrap",
+    height: "fit-content",
   },
+
   details: {
     display: "flex",
     flexDirection: "column",
@@ -390,7 +515,14 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: 14,
     color: "#374151",
   },
-  actions: { marginTop: 16, display: "flex", gap: 10 },
+
+  actions: {
+    marginTop: 16,
+    display: "flex",
+    gap: 10,
+    flexWrap: "wrap",
+  },
+
   confirmBtn: {
     padding: "8px 20px",
     background: "#d1fae5",
@@ -400,6 +532,7 @@ const styles: Record<string, React.CSSProperties> = {
     cursor: "pointer",
     fontWeight: 600,
   },
+
   inProgressBtn: {
     padding: "8px 20px",
     background: "#dbeafe",
@@ -409,6 +542,7 @@ const styles: Record<string, React.CSSProperties> = {
     cursor: "pointer",
     fontWeight: 600,
   },
+
   completeBtn: {
     padding: "8px 20px",
     background: "#f0fdf4",
@@ -418,7 +552,13 @@ const styles: Record<string, React.CSSProperties> = {
     cursor: "pointer",
     fontWeight: 600,
   },
-  center: { textAlign: "center", padding: 60, color: "#6b7280" },
+
+  center: {
+    textAlign: "center",
+    padding: 60,
+    color: "#6b7280",
+  },
+
   notice: {
     background: "#fef3c7",
     color: "#92400e",
@@ -428,12 +568,14 @@ const styles: Record<string, React.CSSProperties> = {
     marginBottom: 20,
     fontSize: 14,
   },
+
   panel: {
     background: "#fff",
     padding: 24,
     borderRadius: 12,
     boxShadow: "0 2px 8px rgba(0,0,0,0.06)",
   },
+
   svcList: {
     listStyle: "none",
     margin: "0 0 16px 0",
@@ -442,6 +584,7 @@ const styles: Record<string, React.CSSProperties> = {
     flexDirection: "column",
     gap: 8,
   },
+
   svcItem: {
     display: "flex",
     alignItems: "center",
@@ -449,8 +592,20 @@ const styles: Record<string, React.CSSProperties> = {
     padding: "8px 0",
     borderBottom: "1px solid #f3f4f6",
   },
-  svcName: { flex: 1, fontSize: 15, fontWeight: 600, color: "#111827" },
-  svcPrice: { fontSize: 15, color: "#065f46", fontWeight: 600 },
+
+  svcName: {
+    flex: 1,
+    fontSize: 15,
+    fontWeight: 600,
+    color: "#111827",
+  },
+
+  svcPrice: {
+    fontSize: 15,
+    color: "#065f46",
+    fontWeight: 600,
+  },
+
   removeBtn: {
     padding: "5px 14px",
     background: "#fee2e2",
@@ -461,8 +616,20 @@ const styles: Record<string, React.CSSProperties> = {
     fontWeight: 600,
     cursor: "pointer",
   },
-  muted: { color: "#6b7280", fontSize: 14, margin: "8px 0" },
-  svcForm: { display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" },
+
+  muted: {
+    color: "#6b7280",
+    fontSize: 14,
+    margin: "8px 0",
+  },
+
+  svcForm: {
+    display: "flex",
+    gap: 10,
+    flexWrap: "wrap",
+    alignItems: "center",
+  },
+
   select: {
     flex: 1,
     minWidth: 200,
@@ -472,6 +639,7 @@ const styles: Record<string, React.CSSProperties> = {
     background: "#fff",
     color: "#111827",
   },
+
   priceInput: {
     width: 150,
     padding: "9px 12px",
@@ -480,6 +648,7 @@ const styles: Record<string, React.CSSProperties> = {
     background: "#fff",
     color: "#111827",
   },
+
   saveBtn: {
     padding: "9px 20px",
     background: "#1a56db",
