@@ -181,7 +181,7 @@ const ProviderDashboard = () => {
   const handleLogout = () => {
     localStorage.removeItem("providerToken");
     localStorage.removeItem("provider");
-    navigate("/provider/login");
+    navigate("/login");
   };
 
   return (
